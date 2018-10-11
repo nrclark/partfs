@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <libgen.h>
+#include <time.h>
 
 #define FUSE_USE_VERSION 26
 #include <fuse/fuse.h>
@@ -109,12 +110,28 @@ static int partfs_write(const char *path, const char *buf, size_t size,
 
 static int partfs_access(const char * path, int amode);
 
+static int partfs_utimens(const char * path, const struct timespec tv[2]);
+
+static int partfs_truncate(const char * path, off_t offset);
+
+static int partfs_chown(const char *path, uid_t uid, gid_t gid);
+
+static int partfs_chmod(const char *path, mode_t mode);
+
+static int partfs_fsync(const char *path, int datasync,
+                        struct fuse_file_info *info);
+
 static struct fuse_operations partfs_operations = {
     .getattr = partfs_getattr,
     .open = partfs_open,
     .read = partfs_read,
     .write = partfs_write,
     .access = partfs_access,
+    .utimens = partfs_utimens,
+    .truncate = partfs_truncate,
+    .chown = partfs_chown,
+    .chmod = partfs_chmod,
+    .fsync = partfs_fsync,
 };
 
 static struct fuse_opt partfs_opts[] = {
@@ -219,6 +236,9 @@ static int partfs_open(const char *path, struct fuse_file_info *info)
 static int partfs_getattr(const char *path, struct stat *stbuf)
 {
     (void) path;
+    struct stat source_stat;
+    int result;
+    
     memset(stbuf, 0, sizeof(struct stat));
 
     stbuf->st_uid = getuid();
@@ -232,6 +252,16 @@ static int partfs_getattr(const char *path, struct stat *stbuf)
 
     stbuf->st_nlink = 1;
     stbuf->st_size = mount_size;
+
+    result = fstat(source_fd, &source_stat);
+
+    if (result < 0) {
+        return -errno;
+    }
+
+    memcpy(&(stbuf->st_atim), &(source_stat.st_atim), sizeof(stbuf->st_atim));
+    memcpy(&(stbuf->st_mtim), &(source_stat.st_mtim), sizeof(stbuf->st_mtim));
+    memcpy(&(stbuf->st_ctim), &(source_stat.st_ctim), sizeof(stbuf->st_ctim));
 
     return 0;
 }
@@ -320,7 +350,7 @@ static int partfs_access(const char * path, int amode)
     (void) path;
     int result;
 
-    if (((amode & W_OK) == 0) && (read_only == 0)) {
+    if ((amode & W_OK) && read_only) {
         return -EACCES;
     }
 
@@ -329,6 +359,54 @@ static int partfs_access(const char * path, int amode)
     }
 
     return 0;
+}
+
+static int partfs_utimens(const char * path, const struct timespec tv[2])
+{
+    int result = futimens(source_fd, tv);
+
+    if (result < 0) {
+        return -errno;
+    }
+    return 0;
+}
+
+static int partfs_truncate(const char * path, off_t offset)
+{
+    (void) path;
+    (void) offset;
+    return 0;
+}
+
+static int partfs_chown(const char *path, uid_t uid, gid_t gid)
+{
+    (void) path;
+    (void) uid;
+    (void) gid;
+    return -EPERM;
+}
+
+static int partfs_chmod(const char *path, mode_t mode)
+{
+    (void) path;
+    (void) mode;
+    return 0;
+}
+
+static int partfs_fsync(const char *path, int datasync,
+                        struct fuse_file_info *info)
+{
+    (void) path;
+    (void) datasync;
+    (void) info;
+
+    int result = fsync(source_fd);
+
+    if (result < 0) {
+        return -errno;
+    }
+
+    return result;
 }
 
 //----------------------------------------------------------------------------//
