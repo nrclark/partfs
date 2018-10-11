@@ -107,11 +107,14 @@ static int partfs_read(const char *path, char *buf, size_t size,
 static int partfs_write(const char *path, const char *buf, size_t size,
                         off_t offset, struct fuse_file_info *info);
 
+static int partfs_access(const char * path, int amode);
+
 static struct fuse_operations partfs_operations = {
     .getattr = partfs_getattr,
     .open = partfs_open,
     .read = partfs_read,
     .write = partfs_write,
+    .access = partfs_access,
 };
 
 static struct fuse_opt partfs_opts[] = {
@@ -207,10 +210,6 @@ static int partfs_open(const char *path, struct fuse_file_info *info)
     (void) info;
 
     if (read_only && ((info->flags & O_ACCMODE) != O_RDONLY)) {
-        return -EACCES;
-    }
-
-    if ((info->flags & O_ACCMODE) != O_RDWR) {
         return -EACCES;
     }
 
@@ -316,6 +315,22 @@ static int partfs_write(const char *path, const char *buf, size_t size,
     return write_result;
 }
 
+static int partfs_access(const char * path, int amode)
+{
+    (void) path;
+    int result;
+
+    if (((amode & W_OK) == 0) && (read_only == 0)) {
+        return -EACCES;
+    }
+
+    if (amode & X_OK) {
+        return -EACCES;
+    }
+
+    return 0;
+}
+
 //----------------------------------------------------------------------------//
 
 int main(int argc, char *argv[])
@@ -334,6 +349,11 @@ int main(int argc, char *argv[])
     }
 
     fuse_opt_parse(&args, &config, partfs_opts, partfs_opt_proc);
+
+    if (config.source[0] == '\x00') {
+        fprintf(stderr, "%s: error: source not specified.\n", progname);
+        exit(1);
+    }
 
     if (config.mountpoint[0] == '\x00') {
         fprintf(stderr, "%s: error: mount-point not specified.\n", progname);
