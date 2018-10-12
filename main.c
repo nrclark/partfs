@@ -1,22 +1,20 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include <errno.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <libgen.h>
-#include <time.h>
 
 #define FUSE_USE_VERSION 26
 #include <fuse/fuse.h>
 
 //-----------//-----------//-----------//-----------//-----------//-----------//
 
-ssize_t read_noeintr(int fildes, void *buf, size_t nbyte)
+static ssize_t read_noeintr(int fildes, void *buf, size_t nbyte)
 {
     ssize_t result;
 
@@ -27,7 +25,7 @@ ssize_t read_noeintr(int fildes, void *buf, size_t nbyte)
     return result;
 }
 
-ssize_t write_noeintr(int fildes, const void *buf, size_t nbyte)
+static ssize_t write_noeintr(int fildes, const void *buf, size_t nbyte)
 {
     ssize_t result;
 
@@ -75,9 +73,7 @@ static ssize_t write_count(int filedes, const char *buf, size_t nbyte)
 
 //-----------//-----------//-----------//-----------//-----------//-----------//
 
-//XXX: implement ro/rw
-
-static char progname[NAME_MAX+1] = {0};
+static char progname[NAME_MAX + 1] = {0};
 static int read_only = 0;
 static int source_fd;
 mode_t source_mode;
@@ -88,14 +84,14 @@ struct partfs_config {
     size_t offset;
     size_t size;
     int read_only;
-    char source[PATH_MAX+1];
-    char mountpoint[PATH_MAX+1];
+    char source[PATH_MAX + 1];
+    char mountpoint[PATH_MAX + 1];
 };
 
 #define PARTFS_OPT(t, p, v) {t, offsetof(struct partfs_config, p), v}
 
 enum {
-     KEY_VERSION,
+    KEY_VERSION,
 };
 
 static int partfs_open(const char *path, struct fuse_file_info *info);
@@ -103,16 +99,16 @@ static int partfs_open(const char *path, struct fuse_file_info *info);
 static int partfs_getattr(const char *path, struct stat *stbuf);
 
 static int partfs_read(const char *path, char *buf, size_t size,
-                      off_t offset, struct fuse_file_info *info);
+                       off_t offset, struct fuse_file_info *info);
 
 static int partfs_write(const char *path, const char *buf, size_t size,
                         off_t offset, struct fuse_file_info *info);
 
-static int partfs_access(const char * path, int amode);
+static int partfs_access(const char *path, int amode);
 
-static int partfs_utimens(const char * path, const struct timespec tv[2]);
+static int partfs_utimens(const char *path, const struct timespec tv[2]);
 
-static int partfs_truncate(const char * path, off_t offset);
+static int partfs_truncate(const char *path, off_t offset);
 
 static int partfs_chown(const char *path, uid_t uid, gid_t gid);
 
@@ -146,32 +142,33 @@ static struct fuse_opt partfs_opts[] = {
     FUSE_OPT_END
 };
 
-static const char partfs_help[] = 
-    "usage: %s mountpoint [options]\n"
-    "\n"
-    "general options:\n"
-    "    -o opt,[opt...]  mount options\n"
-    "    -h   --help      print help\n"
-    "    -V   --version   print version\n"
-    "\n"
-    "PartFS options:\n"
-    "    -o offset=NBYTES\n"
-    "    -o size=NBYTES\n"
-    "\n";
+static const char partfs_help[] =
+"usage: %s mountpoint [options]\n"
+"\n"
+"general options:\n"
+"    -o opt,[opt...]  mount options\n"
+"    -h   --help      print help\n"
+"    -V   --version   print version\n"
+"\n"
+"PartFS options:\n"
+"    -o offset=NBYTES\n"
+"    -o size=NBYTES\n"
+"\n";
 
 static const char partfs_version[] = "0.0.1";
 
 static inline void safecopy(char *dest, const char *src, unsigned int maxlen)
 {
-    size_t length = strnlen(src, maxlen-1);
+    size_t length = strnlen(src, maxlen - 1);
     memcpy(dest, src, length);
-    dest[length] = '\x00'; 
+    dest[length] = '\x00';
 }
 
-static void exit_help()
+static void exit_help(void)
 {
     fprintf(stderr, partfs_help, progname);
-    char *argv[2] = {progname, "-ho"};
+    char help_opt[4] = "-ho";
+    char *argv[2] = {progname, help_opt};
     fuse_main(2, argv, &partfs_operations, NULL);
     exit(1);
 }
@@ -215,6 +212,9 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
 
             exit(1);
             break;
+
+        default:
+            break;
     }
     return 1;
 }
@@ -238,7 +238,7 @@ static int partfs_getattr(const char *path, struct stat *stbuf)
     (void) path;
     struct stat source_stat;
     int result;
-    
+
     memset(stbuf, 0, sizeof(struct stat));
 
     stbuf->st_uid = getuid();
@@ -247,11 +247,11 @@ static int partfs_getattr(const char *path, struct stat *stbuf)
     stbuf->st_mode = S_IFREG | source_mode;
 
     if (read_only) {
-        stbuf->st_mode &= ~0222;
+        stbuf->st_mode &= ~0222U;
     }
 
     stbuf->st_nlink = 1;
-    stbuf->st_size = mount_size;
+    stbuf->st_size = (off_t) mount_size;
 
     result = fstat(source_fd, &source_stat);
 
@@ -277,15 +277,15 @@ static int partfs_read(const char *path, char *buf, size_t size,
         return -EINVAL;
     }
 
-    if ((offset + size) > mount_size) {
-        size = mount_size - offset;
+    if (((size_t)offset + size) > mount_size) {
+        size = mount_size - (size_t) offset;
     }
 
     if (size == 0) {
         return 0;
     }
 
-    lseek_result = lseek(source_fd, offset + source_offset, SEEK_SET);
+    lseek_result = lseek(source_fd, offset + (off_t) source_offset, SEEK_SET);
 
     if (lseek_result < 0) {
         if (info->direct_io) {
@@ -305,7 +305,6 @@ static int partfs_read(const char *path, char *buf, size_t size,
     }
 
     return read_result;
-
 }
 
 static int partfs_write(const char *path, const char *buf, size_t size,
@@ -319,11 +318,11 @@ static int partfs_write(const char *path, const char *buf, size_t size,
         return -EINVAL;
     }
 
-    if ((offset + size) > mount_size) {
+    if (((size_t)offset + size) > mount_size) {
         return -EIO;
     }
 
-    lseek_result = lseek(source_fd, offset + source_offset, SEEK_SET);
+    lseek_result = lseek(source_fd, offset + (off_t) source_offset, SEEK_SET);
 
     if (lseek_result < 0) {
         if (info->direct_io) {
@@ -345,10 +344,9 @@ static int partfs_write(const char *path, const char *buf, size_t size,
     return write_result;
 }
 
-static int partfs_access(const char * path, int amode)
+static int partfs_access(const char *path, int amode)
 {
     (void) path;
-    int result;
 
     if ((amode & W_OK) && read_only) {
         return -EACCES;
@@ -361,8 +359,9 @@ static int partfs_access(const char * path, int amode)
     return 0;
 }
 
-static int partfs_utimens(const char * path, const struct timespec tv[2])
+static int partfs_utimens(const char *path, const struct timespec tv[2])
 {
+    (void) path;
     int result = futimens(source_fd, tv);
 
     if (result < 0) {
@@ -371,7 +370,7 @@ static int partfs_utimens(const char * path, const struct timespec tv[2])
     return 0;
 }
 
-static int partfs_truncate(const char * path, off_t offset)
+static int partfs_truncate(const char *path, off_t offset)
 {
     (void) path;
     (void) offset;
@@ -420,7 +419,7 @@ int main(int argc, char *argv[])
 
     safecopy(progname, basename(argv[0]), sizeof(progname));
 
-    for(int x = 1; x < argc; x++) {
+    for (int x = 1; x < argc; x++) {
         if ((strcmp(argv[x], "--help") == 0) || (strcmp(argv[x], "-h") == 0)) {
             exit_help();
         }
@@ -473,7 +472,7 @@ int main(int argc, char *argv[])
     }
 
     if (config.size == 0) {
-        config.size = stat_buffer.st_size - config.offset;
+        config.size = (size_t) stat_buffer.st_size - config.offset;
     }
 
     if ((config.offset + config.size) > (size_t) stat_buffer.st_size) {
