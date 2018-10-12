@@ -135,12 +135,12 @@ SAN_CFLAGS := \
 #------------------------------------------------------------------------------#
 
 cppcheck-%:
-	@echo cppchecking $*...
+	@echo -n "(cppcheck) "
 	@(cppcheck $* --std=c99 --force \
 	--enable=warning,style,performance,portability \
 	-I `pwd` -I /usr/include -I /usr/include/linux \
 	-I /usr/lib/gcc/x86_64-redhat-linux/7/include \
-	--std=c99 1>/dev/null) 2>&1 | (grep -vP "^[(]information" 1>&2 || true)
+	--std=c99) 2>&1 | (grep -vP "^[(]information" 1>&2 || true)
 
 $(foreach x,$(wildcard *.c),$(eval cppcheck-$x:))
 $(foreach x,$(wildcard *.h),$(eval cppcheck-$x:))
