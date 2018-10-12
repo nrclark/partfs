@@ -1,3 +1,5 @@
+/* Copyright Nicholas Clark, released under GPL 2 */
+
 #define _POSIX_C_SOURCE 200809L
 
 #include <errno.h>
@@ -12,7 +14,60 @@
 #define FUSE_USE_VERSION 26
 #include <fuse/fuse.h>
 
-//-----------//-----------//-----------//-----------//-----------//-----------//
+static const char version[] = "0.0.1";
+
+/*----------------------------------------------------------------------------*/
+
+static char progname[NAME_MAX + 1] = {0};
+
+struct partfs_context {
+    int read_only;
+    int source_fd;
+    mode_t source_mode;
+    size_t mount_size;
+    size_t source_offset;
+};
+
+struct partfs_config {
+    size_t offset;
+    size_t size;
+    int read_only;
+    char source[PATH_MAX + 1];
+    char mountpoint[PATH_MAX + 1];
+};
+
+#define PARTFS_OPT(t, p, v) {t, offsetof(struct partfs_config, p), v}
+
+enum {
+    KEY_VERSION,
+};
+
+static struct fuse_opt partfs_opts[] = {
+    PARTFS_OPT("offset=%lu", offset, 0),
+    PARTFS_OPT("size=%lu", size, 0),
+    PARTFS_OPT("ro", read_only, 1),
+
+    FUSE_OPT_KEY("-V", KEY_VERSION),
+    FUSE_OPT_KEY("--version", KEY_VERSION),
+    FUSE_OPT_KEY("-h", 0),
+    FUSE_OPT_KEY("--help", 0),
+    FUSE_OPT_END
+};
+
+static const char partfs_help[] =
+"usage: %s mountpoint [options]\n"
+"\n"
+"general options:\n"
+"    -o opt,[opt...]  mount options\n"
+"    -h   --help      print help\n"
+"    -V   --version   print version\n"
+"\n"
+"PartFS options:\n"
+"    -o offset=NBYTES\n"
+"    -o size=NBYTES\n"
+"\n";
+
+/*----------------------------------------------------------------------------*/
 
 static ssize_t read_noeintr(int fildes, void *buf, size_t nbyte)
 {
@@ -71,92 +126,6 @@ static ssize_t write_count(int filedes, const char *buf, size_t nbyte)
     return (ssize_t) nbyte;
 }
 
-//-----------//-----------//-----------//-----------//-----------//-----------//
-
-static char progname[NAME_MAX + 1] = {0};
-static int read_only = 0;
-static int source_fd;
-mode_t source_mode;
-static size_t mount_size = 0;
-static size_t source_offset = 0;
-
-struct partfs_config {
-    size_t offset;
-    size_t size;
-    int read_only;
-    char source[PATH_MAX + 1];
-    char mountpoint[PATH_MAX + 1];
-};
-
-#define PARTFS_OPT(t, p, v) {t, offsetof(struct partfs_config, p), v}
-
-enum {
-    KEY_VERSION,
-};
-
-static int partfs_open(const char *path, struct fuse_file_info *info);
-
-static int partfs_getattr(const char *path, struct stat *stbuf);
-
-static int partfs_read(const char *path, char *buf, size_t size,
-                       off_t offset, struct fuse_file_info *info);
-
-static int partfs_write(const char *path, const char *buf, size_t size,
-                        off_t offset, struct fuse_file_info *info);
-
-static int partfs_access(const char *path, int amode);
-
-static int partfs_utimens(const char *path, const struct timespec tv[2]);
-
-static int partfs_truncate(const char *path, off_t offset);
-
-static int partfs_chown(const char *path, uid_t uid, gid_t gid);
-
-static int partfs_chmod(const char *path, mode_t mode);
-
-static int partfs_fsync(const char *path, int datasync,
-                        struct fuse_file_info *info);
-
-static struct fuse_operations partfs_operations = {
-    .getattr = partfs_getattr,
-    .open = partfs_open,
-    .read = partfs_read,
-    .write = partfs_write,
-    .access = partfs_access,
-    .utimens = partfs_utimens,
-    .truncate = partfs_truncate,
-    .chown = partfs_chown,
-    .chmod = partfs_chmod,
-    .fsync = partfs_fsync,
-};
-
-static struct fuse_opt partfs_opts[] = {
-    PARTFS_OPT("offset=%lu", offset, 0),
-    PARTFS_OPT("size=%lu", size, 0),
-    PARTFS_OPT("ro", read_only, 1),
-
-    FUSE_OPT_KEY("-V", KEY_VERSION),
-    FUSE_OPT_KEY("--version", KEY_VERSION),
-    FUSE_OPT_KEY("-h", 0),
-    FUSE_OPT_KEY("--help", 0),
-    FUSE_OPT_END
-};
-
-static const char partfs_help[] =
-"usage: %s mountpoint [options]\n"
-"\n"
-"general options:\n"
-"    -o opt,[opt...]  mount options\n"
-"    -h   --help      print help\n"
-"    -V   --version   print version\n"
-"\n"
-"PartFS options:\n"
-"    -o offset=NBYTES\n"
-"    -o size=NBYTES\n"
-"\n";
-
-static const char partfs_version[] = "0.0.1";
-
 static inline void safecopy(char *dest, const char *src, unsigned int maxlen)
 {
     size_t length = strnlen(src, maxlen - 1);
@@ -166,10 +135,11 @@ static inline void safecopy(char *dest, const char *src, unsigned int maxlen)
 
 static void exit_help(void)
 {
+    const struct fuse_operations dummy_ops = {0};
     fprintf(stderr, partfs_help, progname);
     char help_opt[4] = "-ho";
     char *argv[2] = {progname, help_opt};
-    fuse_main(2, argv, &partfs_operations, NULL);
+    fuse_main(2, argv, &dummy_ops, NULL);
     exit(1);
 }
 
@@ -177,12 +147,13 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
                            struct fuse_args *outargs)
 {
     struct partfs_config *config = data;
+    const struct fuse_operations dummy_ops = {0};
 
     switch (key) {
         case KEY_VERSION:
-            fprintf(stderr, "PartFS version %s\n", partfs_version);
+            fprintf(stderr, "PartFS version %s\n", version);
             fuse_opt_add_arg(outargs, "--version");
-            fuse_main(outargs->argc, outargs->argv, &partfs_operations, NULL);
+            fuse_main(outargs->argc, outargs->argv, &dummy_ops, NULL);
             exit(0);
             break;
 
@@ -219,14 +190,37 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
     return 1;
 }
 
-//----------------------------------------------------------------------------//
+static struct partfs_context * partfs_get_context(void)
+{
+    struct fuse_context *fuse_context = fuse_get_context();
+    struct partfs_context *result;
+
+    if (fuse_context == NULL) {
+        fprintf(stderr, "%s: error: couldn't retrieve fuse context.\n",
+                progname);
+        exit(0);
+    }
+
+    result = (struct partfs_context *)(fuse_context->private_data);
+
+    if (result == NULL) {
+        fprintf(stderr, "%s: error: couldn't retrieve partfs context.\n",
+                progname);
+        exit(0);
+    }
+
+    return result;
+}
+
+/*----------------------------------------------------------------------------*/
 
 static int partfs_open(const char *path, struct fuse_file_info *info)
 {
     (void) path;
     (void) info;
+    struct partfs_context *ctx = partfs_get_context();
 
-    if (read_only && ((info->flags & O_ACCMODE) != O_RDONLY)) {
+    if (ctx->read_only && ((info->flags & O_ACCMODE) != O_RDONLY)) {
         return -EACCES;
     }
 
@@ -238,22 +232,23 @@ static int partfs_getattr(const char *path, struct stat *stbuf)
     (void) path;
     struct stat source_stat;
     int result;
+    struct partfs_context *ctx = partfs_get_context();
 
     memset(stbuf, 0, sizeof(struct stat));
 
     stbuf->st_uid = getuid();
     stbuf->st_gid = getgid();
 
-    stbuf->st_mode = S_IFREG | source_mode;
+    stbuf->st_mode = S_IFREG | ctx->source_mode;
 
-    if (read_only) {
+    if (ctx->read_only) {
         stbuf->st_mode &= ~0222U;
     }
 
     stbuf->st_nlink = 1;
-    stbuf->st_size = (off_t) mount_size;
+    stbuf->st_size = (off_t) ctx->mount_size;
 
-    result = fstat(source_fd, &source_stat);
+    result = fstat(ctx->source_fd, &source_stat);
 
     if (result < 0) {
         return -errno;
@@ -272,20 +267,22 @@ static int partfs_read(const char *path, char *buf, size_t size,
     (void) path;
     off_t lseek_result;
     ssize_t read_result;
+    struct partfs_context *ctx = partfs_get_context();
 
     if (((size_t)offset + size) < (size_t)offset) {
         return -EINVAL;
     }
 
-    if (((size_t)offset + size) > mount_size) {
-        size = mount_size - (size_t) offset;
+    if (((size_t)offset + size) > ctx->mount_size) {
+        size = ctx->mount_size - (size_t) offset;
     }
 
     if (size == 0) {
         return 0;
     }
 
-    lseek_result = lseek(source_fd, offset + (off_t) source_offset, SEEK_SET);
+    lseek_result = lseek(ctx->source_fd, offset + (off_t) ctx->source_offset,
+                         SEEK_SET);
 
     if (lseek_result < 0) {
         if (info->direct_io) {
@@ -295,10 +292,10 @@ static int partfs_read(const char *path, char *buf, size_t size,
     }
 
     if (info->direct_io) {
-        return read(source_fd, buf, size);
+        return read(ctx->source_fd, buf, size);
     }
 
-    read_result = read_count(source_fd, buf, size);
+    read_result = read_count(ctx->source_fd, buf, size);
 
     if (read_result < 0) {
         return -errno;
@@ -313,16 +310,18 @@ static int partfs_write(const char *path, const char *buf, size_t size,
     (void) path;
     off_t lseek_result;
     ssize_t write_result;
+    struct partfs_context *ctx = partfs_get_context();
 
     if (((size_t)offset + size) < (size_t)offset) {
         return -EINVAL;
     }
 
-    if (((size_t)offset + size) > mount_size) {
+    if (((size_t)offset + size) > ctx->mount_size) {
         return -EIO;
     }
 
-    lseek_result = lseek(source_fd, offset + (off_t) source_offset, SEEK_SET);
+    lseek_result = lseek(ctx->source_fd, offset + (off_t) ctx->source_offset,
+                         SEEK_SET);
 
     if (lseek_result < 0) {
         if (info->direct_io) {
@@ -332,10 +331,10 @@ static int partfs_write(const char *path, const char *buf, size_t size,
     }
 
     if (info->direct_io) {
-        return write(source_fd, buf, size);
+        return write(ctx->source_fd, buf, size);
     }
 
-    write_result = write_count(source_fd, buf, size);
+    write_result = write_count(ctx->source_fd, buf, size);
 
     if (write_result < 0) {
         return -errno;
@@ -347,8 +346,9 @@ static int partfs_write(const char *path, const char *buf, size_t size,
 static int partfs_access(const char *path, int amode)
 {
     (void) path;
+    struct partfs_context *ctx = partfs_get_context();
 
-    if ((amode & W_OK) && read_only) {
+    if ((amode & W_OK) && ctx->read_only) {
         return -EACCES;
     }
 
@@ -362,7 +362,9 @@ static int partfs_access(const char *path, int amode)
 static int partfs_utimens(const char *path, const struct timespec tv[2])
 {
     (void) path;
-    int result = futimens(source_fd, tv);
+    struct partfs_context *ctx = partfs_get_context();
+
+    int result = futimens(ctx->source_fd, tv);
 
     if (result < 0) {
         return -errno;
@@ -398,8 +400,9 @@ static int partfs_fsync(const char *path, int datasync,
     (void) path;
     (void) datasync;
     (void) info;
+    struct partfs_context *ctx = partfs_get_context();
 
-    int result = fsync(source_fd);
+    int result = fsync(ctx->source_fd);
 
     if (result < 0) {
         return -errno;
@@ -408,12 +411,27 @@ static int partfs_fsync(const char *path, int datasync,
     return result;
 }
 
-//----------------------------------------------------------------------------//
+/*----------------------------------------------------------------------------*/
+
+static struct fuse_operations partfs_operations = {
+    .getattr = partfs_getattr,
+    .open = partfs_open,
+    .read = partfs_read,
+    .write = partfs_write,
+    .access = partfs_access,
+    .utimens = partfs_utimens,
+    .truncate = partfs_truncate,
+    .chown = partfs_chown,
+    .chmod = partfs_chmod,
+    .fsync = partfs_fsync,
+};
 
 int main(int argc, char *argv[])
 {
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     struct partfs_config config = {0};
+    struct partfs_context context = {0};
+
     struct stat stat_buffer;
     int result;
 
@@ -452,12 +470,12 @@ int main(int argc, char *argv[])
     }
 
     if (config.read_only) {
-        source_fd = open(config.source, O_RDONLY);
+        context.source_fd = open(config.source, O_RDONLY);
     } else {
-        source_fd = open(config.source, O_RDWR);
+        context.source_fd = open(config.source, O_RDWR);
     }
 
-    if (source_fd < 0) {
+    if (context.source_fd < 0) {
         fprintf(stderr, "%s: error: couldn't open file [%s] (%s)\n",
                 progname, config.source, strerror(errno));
         exit(1);
@@ -481,15 +499,15 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    source_mode = stat_buffer.st_mode;
-    read_only = config.read_only;
-    mount_size = config.size;
-    source_offset = config.offset;
+    context.source_mode = stat_buffer.st_mode;
+    context.read_only = config.read_only;
+    context.mount_size = config.size;
+    context.source_offset = config.offset;
 
     fuse_opt_add_arg(&args, "-s");
 
-    result = fuse_main(args.argc, args.argv, &partfs_operations, NULL);
+    result = fuse_main(args.argc, args.argv, &partfs_operations, &context);
 
-    close(source_fd);
+    close(context.source_fd);
     return result;
 }
