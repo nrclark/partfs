@@ -162,7 +162,7 @@ static void exit_help(void)
 static int partfs_opt_proc(void *data, const char *arg, int key,
                            struct fuse_args *outargs)
 {
-    struct partfs_config *config = data;
+    struct partfs_config *config = (struct partfs_config *) data;
     const struct fuse_operations dummy_ops = {0};
 
     switch (key) {
@@ -302,13 +302,13 @@ static int partfs_read(const char *path, char *buf, size_t size,
 
     if (lseek_result < 0) {
         if (info->direct_io) {
-            return lseek_result;
+            return (int) lseek_result;
         }
         return -errno;
     }
 
     if (info->direct_io) {
-        return read(ctx->source_fd, buf, size);
+        return (int) read(ctx->source_fd, buf, size);
     }
 
     read_result = read_count(ctx->source_fd, buf, size);
@@ -317,7 +317,7 @@ static int partfs_read(const char *path, char *buf, size_t size,
         return -errno;
     }
 
-    return read_result;
+    return (int) read_result;
 }
 
 static int partfs_write(const char *path, const char *buf, size_t size,
@@ -341,13 +341,13 @@ static int partfs_write(const char *path, const char *buf, size_t size,
 
     if (lseek_result < 0) {
         if (info->direct_io) {
-            return lseek_result;
+            return (int) lseek_result;
         }
         return -errno;
     }
 
     if (info->direct_io) {
-        return write(ctx->source_fd, buf, size);
+        return (int) write(ctx->source_fd, buf, size);
     }
 
     write_result = write_count(ctx->source_fd, buf, size);
@@ -356,7 +356,7 @@ static int partfs_write(const char *path, const char *buf, size_t size,
         return -errno;
     }
 
-    return write_result;
+    return (int) write_result;
 }
 
 static int partfs_access(const char *path, int amode)
