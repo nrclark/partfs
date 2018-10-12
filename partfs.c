@@ -42,6 +42,7 @@ struct partfs_context {
     mode_t source_mode;
     size_t mount_size;
     size_t source_offset;
+    struct fuse_args *args;
 };
 
 struct partfs_config {
@@ -84,6 +85,21 @@ static const char partfs_help[] =
 "\n";
 
 /*----------------------------------------------------------------------------*/
+
+static void controlled_exit(struct partfs_context *ctx, int exit_code)
+{
+    if (ctx != NULL) {
+        if (ctx->source_fd >= 0) {
+            close(ctx->source_fd);
+        }
+
+        if (ctx->args != NULL) {
+            fuse_opt_free_args(ctx->args);
+        }
+    }
+
+    exit(exit_code);
+}
 
 static ssize_t read_noeintr(int fildes, void *buf, size_t nbyte)
 {
@@ -152,9 +168,10 @@ static inline void safecopy(char *dest, const char *src, unsigned int maxlen)
 static void exit_help(void)
 {
     const struct fuse_operations dummy_ops = {0};
-    fprintf(stderr, partfs_help, progname);
     char help_opt[4] = "-ho";
     char *argv[2] = {progname, help_opt};
+
+    fprintf(stderr, partfs_help, progname);
     fuse_main(2, argv, &dummy_ops, NULL);
     exit(1);
 }
@@ -170,6 +187,7 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
             fprintf(stderr, "PartFS version: "PACKAGE_VERSION "\n");
             fuse_opt_add_arg(outargs, "--version");
             fuse_main(outargs->argc, outargs->argv, &dummy_ops, NULL);
+            fuse_opt_free_args(outargs);
             exit(0);
             break;
 
@@ -178,6 +196,7 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
                 if (arg[0] == '\x00') {
                     fprintf(stderr, "%s: error: source must not be an empty "
                             "string.\n", progname);
+                    fuse_opt_free_args(outargs);
                     exit(1);
                 }
                 safecopy(config->source, arg, sizeof(config->source));
@@ -188,6 +207,7 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
                 if (arg[0] == '\x00') {
                     fprintf(stderr, "%s: error: mount-point must not be an "
                             "empty string.\n", progname);
+                    fuse_opt_free_args(outargs);
                     exit(1);
                 }
                 safecopy(config->mountpoint, arg, sizeof(config->mountpoint));
@@ -197,6 +217,7 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
             fprintf(stderr, "%s: error: invalid additional argument [%s].\n",
                     progname, arg);
 
+            fuse_opt_free_args(outargs);
             exit(1);
             break;
 
@@ -446,7 +467,7 @@ int main(int argc, char *argv[])
 {
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     struct partfs_config config = {0};
-    struct partfs_context context = {0};
+    struct partfs_context context = {.source_fd = -1, .args = &args};
 
     struct stat stat_buffer;
     int result;
@@ -455,6 +476,7 @@ int main(int argc, char *argv[])
 
     for (int x = 1; x < argc; x++) {
         if ((strcmp(argv[x], "--help") == 0) || (strcmp(argv[x], "-h") == 0)) {
+            fuse_opt_free_args(&args);
             exit_help();
         }
     }
@@ -463,12 +485,12 @@ int main(int argc, char *argv[])
 
     if (config.source[0] == '\x00') {
         fprintf(stderr, "%s: error: source not specified.\n", progname);
-        exit(1);
+        controlled_exit(&context, 1);
     }
 
     if (config.mountpoint[0] == '\x00') {
         fprintf(stderr, "%s: error: mount-point not specified.\n", progname);
-        exit(1);
+        controlled_exit(&context, 1);
     }
 
     result = lstat(config.mountpoint, &stat_buffer);
@@ -476,13 +498,13 @@ int main(int argc, char *argv[])
     if (result != 0) {
         fprintf(stderr, "%s: error: couldn't open mount-point [%s] (%s)\n",
                 progname, config.mountpoint, strerror(errno));
-        exit(1);
+        controlled_exit(&context, 1);
     }
 
     if ((S_ISREG(stat_buffer.st_mode) == 0) || (stat_buffer.st_size != 0)) {
         fprintf(stderr, "%s: error: mount-point is not an empty file.\n",
                 progname);
-        exit(1);
+        controlled_exit(&context, 1);
     }
 
     if (config.read_only) {
@@ -494,7 +516,7 @@ int main(int argc, char *argv[])
     if (context.source_fd < 0) {
         fprintf(stderr, "%s: error: couldn't open file [%s] (%s)\n",
                 progname, config.source, strerror(errno));
-        exit(1);
+        controlled_exit(&context, 1);
     }
 
     result = stat(config.source, &stat_buffer);
@@ -502,7 +524,7 @@ int main(int argc, char *argv[])
     if (result != 0) {
         fprintf(stderr, "%s: error: couldn't stat file [%s] (%s)\n",
                 progname, config.source, strerror(errno));
-        exit(1);
+        controlled_exit(&context, 1);
     }
 
     if (config.size == 0) {
@@ -512,7 +534,7 @@ int main(int argc, char *argv[])
     if ((config.offset + config.size) > (size_t) stat_buffer.st_size) {
         fprintf(stderr, "%s: error: requested size or offset extends past the"
                 " end of %s\n", progname, basename(config.source));
-        exit(1);
+        controlled_exit(&context, 1);
     }
 
     context.source_mode = stat_buffer.st_mode;
@@ -523,7 +545,7 @@ int main(int argc, char *argv[])
     fuse_opt_add_arg(&args, "-s");
 
     result = fuse_main(args.argc, args.argv, &partfs_operations, &context);
+    controlled_exit(&context, result);
 
-    close(context.source_fd);
     return result;
 }
