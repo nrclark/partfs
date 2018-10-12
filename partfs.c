@@ -1,4 +1,20 @@
-/* Copyright Nicholas Clark, released under GPL 2 */
+/*
+ *  PartFS: A FUSE filesystem for mounting parts of a file.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  Copyright 2018, Nicholas Clark */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -12,9 +28,9 @@
 #include <libgen.h>
 
 #define FUSE_USE_VERSION 26
-#include <fuse/fuse.h>
+#include <fuse.h>
 
-static const char version[] = "0.0.1";
+#include "config.h"
 
 /*----------------------------------------------------------------------------*/
 
@@ -151,7 +167,7 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
 
     switch (key) {
         case KEY_VERSION:
-            fprintf(stderr, "PartFS version %s\n", version);
+            fprintf(stderr, "PartFS version: "PACKAGE_VERSION "\n");
             fuse_opt_add_arg(outargs, "--version");
             fuse_main(outargs->argc, outargs->argv, &dummy_ops, NULL);
             exit(0);
