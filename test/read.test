@@ -83,6 +83,16 @@ assert_ok "Testing a read from middle to beyond EOF" << END
     test "\${EXPECTED}" = "\${ACTUAL}"
 END
 
+assert_ok "Testing a read from beyond EOF" << END
+    make_files 32
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,size=10
+
+    EXPECTED=""
+    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -i -x -o 34 -c 201)"
+
+    test "\${EXPECTED}" = "\${ACTUAL}"
+END
+
 assert_ok "Testing a zero-length read" << END
     make_files 32
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
