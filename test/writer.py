@@ -67,6 +67,9 @@ def create_parser():
     parser.add_argument('-o', '--offset', dest='offset', default="0",
                         help="Starting offset into file (default: 0)")
 
+    parser.add_argument('-i', '--insane', dest='insane', action="store_true",
+                        help="Skip all offset/filesize checks")
+
     parser.add_argument('outfile', metavar="OUTFILE", help="Output file to " +
                         "write. Must already exist, and be large enough to " +
                         "handle input data.")
@@ -88,7 +91,7 @@ def parse_args(parser):
 
     filesize = os.path.getsize(args.outfile)
 
-    if args.offset > filesize:
+    if (args.insane is False) and (args.offset > filesize):
         err_msg = "Error: offset [%d] is too big for file [%s]\n"
         err_msg %= (args.offset, args.outfile)
         sys.stderr.write(err_msg)
@@ -108,7 +111,7 @@ def main():
 
     data = sys.stdin.buffer.read()
 
-    if (args.offset + len(data)) > filesize:
+    if (args.insane is False) and ((args.offset + len(data)) > filesize):
         err_msg = "Error: data would extend past the end of file [%s]\n"
         err_msg %= args.outfile
         sys.stderr.write(err_msg)

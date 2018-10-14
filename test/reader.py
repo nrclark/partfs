@@ -78,6 +78,9 @@ def create_parser():
     parser.add_argument('-x', '--hexdump', dest='hexdump', action="store_true",
                         help="Print output in hexadecimal")
 
+    parser.add_argument('-i', '--insane', dest='insane', action="store_true",
+                        help="Skip all offset/filesize checks")
+
     parser.add_argument('infile', metavar="INFILE", help="Input file to read")
 
     return parser
@@ -104,13 +107,13 @@ def parse_args(parser):
     if args.count is None:
         args.count = filesize - args.offset
 
-    if args.offset > filesize:
+    if (args.insane is False) and (args.offset > filesize):
         err_msg = "Error: offset [%d] is too big for file [%s]\n"
         err_msg %= (args.offset, args.infile)
         sys.stderr.write(err_msg)
         sys.exit(1)
 
-    if (args.offset + args.count) > filesize:
+    if (args.insane is False) and ((args.offset + args.count) > filesize):
         err_msg = "Error: count [%d] extends past the end of file [%s]\n"
         err_msg %= (args.count, args.infile)
         sys.stderr.write(err_msg)
@@ -136,8 +139,9 @@ def main():
 
     sys.stdout.buffer.write(data)
 
-    if chr(data[-1]) != '\n' and args.nonl is False:
-        sys.stdout.buffer.write(bytes([ord('\n')]))
+    if data != bytes(''.encode()):
+        if chr(data[-1]) != '\n' and args.nonl is False:
+            sys.stdout.buffer.write(bytes([ord('\n')]))
 
 if __name__ == "__main__":
     main()
