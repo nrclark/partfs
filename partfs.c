@@ -309,6 +309,7 @@ static int partfs_read(const char *path, char *buf, size_t size,
     struct partfs_context *ctx = partfs_get_context();
 
     if (((size_t)offset + size) < (size_t)offset) {
+        /* Size + offset overflowed */
         return -EINVAL;
     }
 
@@ -352,11 +353,20 @@ static int partfs_write(const char *path, const char *buf, size_t size,
     struct partfs_context *ctx = partfs_get_context();
 
     if (((size_t)offset + size) < (size_t)offset) {
+        /* Size + offset overflowed */
         return -EINVAL;
     }
 
-    if (((size_t)offset + size) > ctx->mount_size) {
+    if ((size_t)offset > ctx->mount_size) {
         return -EIO;
+    }
+
+    if (((size_t)offset == ctx->mount_size) && (size != 0)) {
+        return -EIO;
+    }
+
+    if (((size_t)offset + size) > ctx->mount_size) {
+        size = ctx->mount_size - (size_t) offset;
     }
 
     lseek_result = lseek(ctx->source_fd, offset + (off_t) ctx->source_offset,
