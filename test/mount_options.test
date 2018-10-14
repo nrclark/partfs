@@ -17,7 +17,6 @@ trap cleanup INT TERM EXIT
 
 make_files () {
     local size="$1"
-    local written=0
 
     set -euo pipefail
     cleanup
