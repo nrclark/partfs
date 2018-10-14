@@ -49,6 +49,7 @@ struct partfs_config {
     size_t offset;
     size_t size;
     int read_only;
+    int nonempty;
     char source[PATH_MAX + 1];
     char mountpoint[PATH_MAX + 1];
 };
@@ -63,6 +64,7 @@ static struct fuse_opt partfs_opts[] = {
     PARTFS_OPT("offset=%lu", offset, 0),
     PARTFS_OPT("size=%lu", size, 0),
     PARTFS_OPT("ro", read_only, 1),
+    PARTFS_OPT("nonempty", nonempty, 1),
 
     FUSE_OPT_KEY("-V", KEY_VERSION),
     FUSE_OPT_KEY("--version", KEY_VERSION),
@@ -501,7 +503,8 @@ int main(int argc, char *argv[])
         controlled_exit(&context, 1);
     }
 
-    if ((S_ISREG(stat_buffer.st_mode) == 0) || (stat_buffer.st_size != 0)) {
+    if (((stat_buffer.st_size != 0) && (config.nonempty == 0)) ||
+        (S_ISREG(stat_buffer.st_mode) == 0)) {
         fprintf(stderr, "%s: error: mount-point is not an empty file.\n",
                 progname);
         controlled_exit(&context, 1);
@@ -543,6 +546,10 @@ int main(int argc, char *argv[])
     context.source_offset = config.offset;
 
     fuse_opt_add_arg(&args, "-s");
+
+    if (config.nonempty) {
+        fuse_opt_add_arg(&args, "-ononempty");
+    }
 
     result = fuse_main(args.argc, args.argv, &partfs_operations, &context);
     controlled_exit(&context, result);
