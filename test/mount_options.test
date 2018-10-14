@@ -5,9 +5,10 @@ source taplib.sh
 SOURCE_FILE="source.txt"
 WORK_FILE="work.txt"
 MOUNT_FILE="mount"
+UNMOUNT="fusermount -zu"
 
 cleanup() {
-    (fusermount -u "${MOUNT_FILE}" || true) 1>/dev/null 2>&1
+    (${UNMOUNT} "${MOUNT_FILE}" || true) 1>/dev/null 2>&1
     rm -rf "${SOURCE_FILE}"
     rm -rf "${WORK_FILE}"
     rm -rf "${MOUNT_FILE}"
@@ -43,7 +44,7 @@ assert_ok "Testing basic mount/unmount" << END
     set -e
     make_files 256
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
 END
 
 assert_ok "Testing that mount fails on nonempty file" << END
@@ -58,7 +59,7 @@ assert_ok "Testing -o nonempty mount option" << END
     make_files 256
     cp "${SOURCE_FILE}" "${MOUNT_FILE}"
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o nonempty
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
 END
 
 assert_ok "Testing that mount fails on a directory" << END
@@ -76,15 +77,15 @@ assert_ok "Testing the size of a mounted file" << END
 
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=5
     validate_size "${MOUNT_FILE}" 251
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
 
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=5,size=37
     validate_size "${MOUNT_FILE}" 37
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
 
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=256
     validate_size "${MOUNT_FILE}" 0
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
 
     cleanup
 END
@@ -94,24 +95,33 @@ assert_ok "Testing the that an oversized mount fails" << END
 
     make_files 256
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
 
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=256
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
 
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=255,size=1
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
 
     ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=256,size=1 2>/dev/null
     ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=255,size=2 2>/dev/null
 END
 
-assert_ok "Testing a size-0 mount" << END
+assert_ok "Testing a zero-length file mount" << END
     set -e
 
     make_files 0
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
+    cleanup
+END
+
+assert_ok "Testing a size-0 mount" << END
+    set -e
+
+    make_files 32
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,size=0
+    validate_size "${MOUNT_FILE}" 0
     cleanup
 END
 
@@ -120,15 +130,19 @@ assert_ok "Testing read-only mounts" << END
 
     make_files 256
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
+    test "\$(stat -c "%a" "${MOUNT_FILE}")" = "664"
+
     cat "${MOUNT_FILE}" 1>/dev/null
     echo "test string" | (tee "${MOUNT_FILE}" 1>/dev/null)
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
     cleanup
 
     make_files 256
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o ro
+    test "\$(stat -c "%a" "${MOUNT_FILE}")" = "444"
+
     cat "${MOUNT_FILE}" 1>/dev/null
     echo "test string" | (! tee "${MOUNT_FILE}" 1>/dev/null 2>&1)
-    fusermount -u "${MOUNT_FILE}"
+    ${UNMOUNT} "${MOUNT_FILE}"
     cleanup
 END
