@@ -75,6 +75,9 @@ def create_parser():
                         "specified, all bytes from [offset] to end-of-file " +
                         "are read.")
 
+    parser.add_argument('-x', '--hexdump', dest='hexdump', action="store_true",
+                        help="Print output in hexadecimal")
+
     parser.add_argument('infile', metavar="INFILE", help="Input file to read")
 
     return parser
@@ -126,6 +129,10 @@ def main():
     with open(args.infile, 'rb') as infile:
         infile.seek(args.offset)
         data = infile.read(args.count)
+
+    if args.hexdump:
+        hexdump = ''.join([hex(x)[2:].zfill(2).upper() for x in data])
+        data = bytes([ord(x) for x in hexdump])
 
     sys.stdout.buffer.write(data)
 
