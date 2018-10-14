@@ -478,7 +478,7 @@ static struct fuse_operations partfs_operations = {
 int main(int argc, char *argv[])
 {
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
-    struct partfs_config config = {0};
+    struct partfs_config config = {.size = (size_t) -1};
     struct partfs_context context = {.source_fd = -1, .args = &args};
 
     struct stat stat_buffer;
@@ -540,7 +540,7 @@ int main(int argc, char *argv[])
         controlled_exit(&context, 1);
     }
 
-    if (config.size == 0) {
+    if (config.size == (size_t) -1) {
         config.size = (size_t) stat_buffer.st_size - config.offset;
     }
 
