@@ -1,0 +1,81 @@
+#!/bin/bash
+
+source taplib.sh
+
+SOURCE_FILE="source.txt"
+WORK_FILE="work.txt"
+MOUNT_FILE="mount"
+
+cleanup() {
+    (fusermount -u "${MOUNT_FILE}" || true) 1>/dev/null 2>&1
+    rm -rf "${SOURCE_FILE}"
+    rm -rf "${WORK_FILE}"
+    rm -rf "${MOUNT_FILE}"
+}
+
+trap cleanup INT TERM EXIT
+
+make_files () {
+    local size="$1"
+    local written=0
+
+    set -euo pipefail
+
+    rm -f "${SOURCE_FILE}"
+    rm -f "${WORK_FILE}"
+    rm -f "${MOUNT_FILE}"
+
+    touch "${MOUNT_FILE}"
+    dd if=/dev/urandom of="${SOURCE_FILE}" bs=${size} count=1 status=none
+    sync
+    cp ${SOURCE_FILE} "${WORK_FILE}"
+}
+
+assert_ok "Testing basic mount/unmount" << END
+    set -e
+    make_files 256
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
+    fusermount -u "${MOUNT_FILE}"
+END
+
+assert_ok "Testing that mount fails on nonempty file" << END
+    set -e
+    make_files 256
+    cp "${SOURCE_FILE}" "${MOUNT_FILE}"
+    ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" 1>/dev/null 2>&1
+END
+
+assert_ok "Testing -o nonempty mount option" << END
+    set -e
+    make_files 256
+    cp "${SOURCE_FILE}" "${MOUNT_FILE}"
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o nonempty
+    fusermount -u "${MOUNT_FILE}"
+END
+
+assert_ok "Testing that mount fails on a directory" << END
+    set -e
+    make_files 256
+    rm -f "${MOUNT_FILE}"
+    mkdir "${MOUNT_FILE}"
+    ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" 1>/dev/null 2>&1
+    rmdir "${MOUNT_FILE}"
+END
+
+assert_ok "Testing read-only mounts" << END
+    set -euo pipefail
+
+    make_files 256
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
+    cat "${MOUNT_FILE}" 1>/dev/null
+    echo "test string" | (tee "${MOUNT_FILE}" 1>/dev/null)
+    fusermount -u "${MOUNT_FILE}"
+    cleanup
+
+    make_files 256
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o ro
+    cat "${MOUNT_FILE}" 1>/dev/null
+    echo "test string" | (! tee "${MOUNT_FILE}" 1>/dev/null 2>&1)
+    fusermount -u "${MOUNT_FILE}"
+    cleanup
+END

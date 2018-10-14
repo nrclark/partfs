@@ -1,0 +1,51 @@
+#!/bin/bash
+source taplib.sh
+cd $(dirname "$0")
+
+SOURCE_FILE="source.txt"
+WORK_FILE="work.txt"
+MOUNT_FILE="mount"
+
+cleanup() {
+    (fusermount -u "${MOUNT_FILE}" || true) 1>/dev/null 2>&1
+    rm -rf "${SOURCE_FILE}"
+    rm -rf "${WORK_FILE}"
+    rm -rf "${MOUNT_FILE}"
+}
+
+make_files () {
+    local size="$1"
+    local written=0
+
+    set -euo pipefail
+
+    cleanup
+    touch "${MOUNT_FILE}"
+
+    dd if=/dev/urandom of="${SOURCE_FILE}" bs=${size} count=1 status=none
+    sync
+    cp ${SOURCE_FILE} "${WORK_FILE}"
+}
+
+trap cleanup INT TERM EXIT
+
+assert_ok "Testing a whole-file mount" << END
+    make_files 32
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
+
+    EXPECTED="\$(./reader.py "${SOURCE_FILE}" -x)"
+    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+
+    test "\${EXPECTED}" = "\${ACTUAL}"
+END
+
+assert_ok "Testing a partial mount" << END
+    make_files 32
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10
+
+    EXPECTED="\$(./reader.py "${SOURCE_FILE}" -x -o 10)"
+    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+
+    test "\${EXPECTED}" = "\${ACTUAL}"
+END
+

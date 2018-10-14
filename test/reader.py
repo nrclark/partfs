@@ -102,7 +102,7 @@ def parse_args(parser):
     filesize = os.path.getsize(args.infile)
 
     if args.count is None:
-        args.count = filesize
+        args.count = filesize - args.offset
 
     if args.offset > filesize:
         err_msg = "Error: offset [%d] is too big for file [%s]\n"
