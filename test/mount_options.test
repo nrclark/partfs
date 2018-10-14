@@ -20,15 +20,24 @@ make_files () {
     local written=0
 
     set -euo pipefail
-
-    rm -f "${SOURCE_FILE}"
-    rm -f "${WORK_FILE}"
-    rm -f "${MOUNT_FILE}"
+    cleanup
 
     touch "${MOUNT_FILE}"
-    dd if=/dev/urandom of="${SOURCE_FILE}" bs=${size} count=1 status=none
+    touch "${SOURCE_FILE}"
+
+    if [ "${size}" != 0 ]; then
+        dd if=/dev/urandom of="${SOURCE_FILE}" bs=${size} count=1 status=none
+    fi
+
     sync
     cp ${SOURCE_FILE} "${WORK_FILE}"
+}
+
+validate_size() {
+    local filename="$1"
+    local size="$2"
+
+    test "$(stat -c %s $filename)" = "$size"
 }
 
 assert_ok "Testing basic mount/unmount" << END
@@ -60,6 +69,51 @@ assert_ok "Testing that mount fails on a directory" << END
     mkdir "${MOUNT_FILE}"
     ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" 1>/dev/null 2>&1
     rmdir "${MOUNT_FILE}"
+END
+
+assert_ok "Testing the size of a mounted file" << END
+    set -e
+    make_files 256
+
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=5
+    validate_size "${MOUNT_FILE}" 251
+    fusermount -u "${MOUNT_FILE}"
+
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=5,size=37
+    validate_size "${MOUNT_FILE}" 37
+    fusermount -u "${MOUNT_FILE}"
+
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=256
+    validate_size "${MOUNT_FILE}" 0
+    fusermount -u "${MOUNT_FILE}"
+
+    cleanup
+END
+
+assert_ok "Testing the that an oversized mount fails" << END
+    set -e
+
+    make_files 256
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
+    fusermount -u "${MOUNT_FILE}"
+
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=256
+    fusermount -u "${MOUNT_FILE}"
+
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=255,size=1
+    fusermount -u "${MOUNT_FILE}"
+
+    ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=256,size=1 2>/dev/null
+    ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=255,size=2 2>/dev/null
+END
+
+assert_ok "Testing a size-0 mount" << END
+    set -e
+
+    make_files 0
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
+    fusermount -u "${MOUNT_FILE}"
+    cleanup
 END
 
 assert_ok "Testing read-only mounts" << END
