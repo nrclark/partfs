@@ -492,6 +492,10 @@ int main(int argc, char *argv[])
     struct partfs_config config = {.size = (size_t) -1};
     struct partfs_context context = {.source_fd = -1, .args = &args};
 
+    char arg_buffer[sizeof("-ofsname=") + NAME_MAX + 2] = "-ofsname=";
+    unsigned int arg_offset = sizeof("-ofsname=") - 1;
+    unsigned int arg_maxlen = (unsigned int) sizeof(arg_buffer) - arg_offset;
+
     struct stat stat_buffer;
     int result;
 
@@ -572,6 +576,9 @@ int main(int argc, char *argv[])
     if (config.nonempty) {
         fuse_opt_add_arg(&args, "-ononempty");
     }
+
+    safecopy(arg_buffer + arg_offset, config.source, arg_maxlen);
+    fuse_opt_add_arg(&args, arg_buffer);
 
     result = fuse_main(args.argc, args.argv, &partfs_operations, &context);
     controlled_exit(&context, result);
