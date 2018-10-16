@@ -38,6 +38,13 @@ make_files () {
     cp ${SOURCE_FILE} "${WORK_FILE}"
 }
 
+validate_size() {
+    local filename="$1"
+    local size="$2"
+
+    test "$(stat -c %s $filename)" = "$size"
+}
+
 trap cleanup INT TERM EXIT
 
 assert_ok "Testing a whole-file write to a whole-file mount" << END
@@ -131,6 +138,7 @@ assert_ok "Testing a truncate operation" << END
 
     make_files 32
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,sizelimit=8
+    validate_size "${MOUNT_FILE}" 8
 
     EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
     ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
@@ -139,7 +147,11 @@ assert_ok "Testing a truncate operation" << END
     EXPECTED_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
     EXPECTED_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
 
+    printf "" > "${MOUNT_FILE}"
+    validate_size "${MOUNT_FILE}" 0
+
     printf "test" > "${MOUNT_FILE}"
+    validate_size "${MOUNT_FILE}" 4
 
     ACTUAL_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
     ACTUAL_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
