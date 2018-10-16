@@ -77,9 +77,78 @@ assert_ok "Testing a whole-file write to a partial mount" << END
     ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
     test "\${EXPECTED}" = "\${ACTUAL}"
 
+    EXPECTED_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
+    EXPECTED_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+
     ./reader.py "${AUX_FILE}" -n -c8 | ./writer.py "${MOUNT_FILE}"
+
+    ACTUAL_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
+    ACTUAL_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
 
     EXPECTED="\$(./reader.py "${AUX_FILE}" -c8 -x)"
     ACTUAL="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
+
+    test "\${EXPECTED_BEFORE}" = "\${ACTUAL_BEFORE}"
     test "\${EXPECTED}" = "\${ACTUAL}"
+    test "\${EXPECTED_AFTER}" = "\${ACTUAL_AFTER}"
+END
+
+
+assert_ok "Testing an oversized write to a partial mount" << END
+    make_files 32
+    cp "${SOURCE_FILE}" "${AUX_FILE}"
+
+    make_files 32
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,size=8
+
+    EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
+    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+    test "\${EXPECTED}" = "\${ACTUAL}"
+
+    EXPECTED_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
+    EXPECTED_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+
+    ./reader.py "${AUX_FILE}" -n -c16 | \
+        (! ./writer.py -i "${MOUNT_FILE}" 2>/dev/null)
+
+    ACTUAL_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
+    ACTUAL_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+
+    EXPECTED="\$(./reader.py "${AUX_FILE}" -c8 -x)"
+    ACTUAL="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
+    ACTUAL_MOUNTED="\$(./reader.py "${MOUNT_FILE}" -x)"
+
+    test "\${EXPECTED_BEFORE}" = "\${ACTUAL_BEFORE}"
+    test "\${EXPECTED}" = "\${ACTUAL}"
+    test "\${EXPECTED}" = "\${ACTUAL_MOUNTED}"
+    test "\${EXPECTED_AFTER}" = "\${ACTUAL_AFTER}"
+END
+
+
+assert_ok "Testing a truncate operation" << END
+    make_files 32
+    cp "${SOURCE_FILE}" "${AUX_FILE}"
+
+    make_files 32
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,size=8
+
+    EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
+    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+    test "\${EXPECTED}" = "\${ACTUAL}"
+
+    EXPECTED_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
+    EXPECTED_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+
+    printf "test" > "${MOUNT_FILE}"
+
+    ACTUAL_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
+    ACTUAL_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+
+    EXPECTED="test"
+    ACTUAL="\$(./reader.py "${SOURCE_FILE}" -c4 -o16)"
+    ACTUAL_MOUNTED="\$(./reader.py "${MOUNT_FILE}" -c4)"
+
+    test "\${EXPECTED_BEFORE}" = "\${ACTUAL_BEFORE}"
+    test "\${EXPECTED}" = "\${ACTUAL_MOUNTED}"
+    test "\${EXPECTED_AFTER}" = "\${ACTUAL_AFTER}"
 END
