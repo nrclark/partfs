@@ -79,7 +79,7 @@ assert_ok "Testing the size of a mounted file" << END
     validate_size "${MOUNT_FILE}" 251
     ${UNMOUNT} "${MOUNT_FILE}"
 
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=5,size=37
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=5,sizelimit=37
     validate_size "${MOUNT_FILE}" 37
     ${UNMOUNT} "${MOUNT_FILE}"
 
@@ -100,11 +100,11 @@ assert_ok "Testing the that an oversized mount fails" << END
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=256
     ${UNMOUNT} "${MOUNT_FILE}"
 
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=255,size=1
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=255,sizelimit=1
     ${UNMOUNT} "${MOUNT_FILE}"
 
-    ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=256,size=1 2>/dev/null
-    ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=255,size=2 2>/dev/null
+    ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=256,sizelimit=1 2>/dev/null
+    ! partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=255,sizelimit=2 2>/dev/null
 END
 
 assert_ok "Testing a zero-length file mount" << END
@@ -120,7 +120,7 @@ assert_ok "Testing a size-0 mount" << END
     set -e
 
     make_files 32
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,size=0
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,sizelimit=0
     validate_size "${MOUNT_FILE}" 0
     cleanup
 END

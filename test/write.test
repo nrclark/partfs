@@ -71,7 +71,7 @@ assert_ok "Testing a whole-file write to a partial mount" << END
     cp "${SOURCE_FILE}" "${AUX_FILE}"
 
     make_files 32
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,size=8
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,sizelimit=8
 
     EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
     ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
@@ -99,7 +99,7 @@ assert_ok "Testing an oversized write to a partial mount" << END
     cp "${SOURCE_FILE}" "${AUX_FILE}"
 
     make_files 32
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,size=8
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,sizelimit=8
 
     EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
     ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
@@ -130,7 +130,7 @@ assert_ok "Testing a truncate operation" << END
     cp "${SOURCE_FILE}" "${AUX_FILE}"
 
     make_files 32
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,size=8
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,sizelimit=8
 
     EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
     ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"

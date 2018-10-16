@@ -55,7 +55,7 @@ END
 
 assert_ok "Testing a partial mount to middle-of-file" << END
     make_files 32
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,size=10
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,sizelimit=10
 
     EXPECTED="\$(./reader.py "${SOURCE_FILE}" -x -o 10 -c 10)"
     ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
@@ -65,7 +65,7 @@ END
 
 assert_ok "Testing a read from middle to EOF" << END
     make_files 32
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,size=10
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,sizelimit=10
 
     EXPECTED="\$(./reader.py "${SOURCE_FILE}" -x -o 18 -c 2)"
     ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x -o 8)"
@@ -75,7 +75,7 @@ END
 
 assert_ok "Testing a read from middle to beyond EOF" << END
     make_files 32
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,size=10
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,sizelimit=10
 
     EXPECTED="\$(./reader.py "${SOURCE_FILE}" -x -o 18 -c 2)"
     ACTUAL="\$(./reader.py "${MOUNT_FILE}" -i -x -o 8 -c 201)"
@@ -85,7 +85,7 @@ END
 
 assert_ok "Testing a read from beyond EOF" << END
     make_files 32
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,size=10
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,sizelimit=10
 
     EXPECTED=""
     ACTUAL="\$(./reader.py "${MOUNT_FILE}" -i -x -o 34 -c 201)"
@@ -105,7 +105,7 @@ END
 
 assert_ok "Testing reads from a zero-length mount" << END
     make_files 32
-    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,size=0
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -o offset=10,sizelimit=0
 
     EXPECTED=""
     ACTUAL="\$(./reader.py "${MOUNT_FILE}" -ix -c0)"

@@ -61,8 +61,8 @@ enum {
 };
 
 static struct fuse_opt partfs_opts[] = {
-    PARTFS_OPT("offset=%lu", offset, 0),
-    PARTFS_OPT("size=%lu", size, 0),
+    PARTFS_OPT("offset=%zu", offset, 0),
+    PARTFS_OPT("sizelimit=%zu", size, 0),
     PARTFS_OPT("ro", read_only, 1),
     PARTFS_OPT("nonempty", nonempty, 1),
 
@@ -83,7 +83,7 @@ static const char partfs_help[] =
 "\n"
 "PartFS options:\n"
 "    -o offset=NBYTES\n"
-"    -o size=NBYTES\n"
+"    -o sizelimit=NBYTES\n"
 "\n";
 
 /*----------------------------------------------------------------------------*/
