@@ -40,8 +40,9 @@ struct partfs_context {
     int read_only;
     int source_fd;
     mode_t source_mode;
-    size_t mount_size;
+    size_t max_size;
     size_t source_offset;
+    size_t current_size;
     struct fuse_args *args;
 };
 
@@ -285,7 +286,7 @@ static int partfs_getattr(const char *path, struct stat *stbuf)
     }
 
     stbuf->st_nlink = 1;
-    stbuf->st_size = (off_t) ctx->mount_size;
+    stbuf->st_size = (off_t) ctx->current_size;
 
     result = fstat(ctx->source_fd, &source_stat);
 
@@ -313,8 +314,8 @@ static int partfs_read(const char *path, char *buf, size_t size,
         return -EINVAL;
     }
 
-    if (((size_t)offset + size) > ctx->mount_size) {
-        size = ctx->mount_size - (size_t) offset;
+    if (((size_t)offset + size) > ctx->current_size) {
+        size = ctx->current_size - (size_t) offset;
     }
 
     if (size == 0) {
@@ -350,6 +351,8 @@ static int partfs_write(const char *path, const char *buf, size_t size,
     (void) path;
     off_t lseek_result;
     ssize_t write_result;
+    size_t stop_byte;
+
     struct partfs_context *ctx = partfs_get_context();
 
     if (((size_t)offset + size) < (size_t)offset) {
@@ -357,16 +360,22 @@ static int partfs_write(const char *path, const char *buf, size_t size,
         return -EINVAL;
     }
 
-    if ((size_t)offset > ctx->mount_size) {
+    if ((size_t)offset > ctx->max_size) {
         return -EIO;
     }
 
-    if (((size_t)offset == ctx->mount_size) && (size != 0)) {
+    if (((size_t)offset == ctx->max_size) && (size != 0)) {
         return -EIO;
     }
 
-    if (((size_t)offset + size) > ctx->mount_size) {
-        size = ctx->mount_size - (size_t) offset;
+    if (((size_t)offset + size) > ctx->max_size) {
+        size = ctx->max_size - (size_t) offset;
+    }
+
+    stop_byte = (size_t) offset + size;
+
+    if (stop_byte > ctx->current_size) {
+        ctx->current_size = stop_byte;
     }
 
     lseek_result = lseek(ctx->source_fd, offset + (off_t) ctx->source_offset,
@@ -421,10 +430,12 @@ static int partfs_utimens(const char *path, const struct timespec tv[2])
     return 0;
 }
 
-static int partfs_truncate(const char *path, off_t offset)
+static int partfs_truncate(const char *path, off_t length)
 {
     (void) path;
-    (void) offset;
+    struct partfs_context *ctx = partfs_get_context();
+
+    ctx->current_size = (size_t) length;
     return 0;
 }
 
@@ -552,7 +563,8 @@ int main(int argc, char *argv[])
 
     context.source_mode = stat_buffer.st_mode;
     context.read_only = config.read_only;
-    context.mount_size = config.size;
+    context.max_size = config.size;
+    context.current_size = config.size;
     context.source_offset = config.offset;
 
     fuse_opt_add_arg(&args, "-s");
