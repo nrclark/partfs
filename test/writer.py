@@ -85,7 +85,9 @@ def parse_args(parser):
     args.offset = normalize_int(args.offset)
     args.outfile = normalize_path(args.outfile)
 
-    if not os.path.isfile(args.outfile):
+    try:
+        open(args.outfile, "r+")
+    except FileNotFoundError:
         sys.stderr.write("Error: couldn't find file [%s]\n" % args.outfile)
         sys.exit(1)
 
