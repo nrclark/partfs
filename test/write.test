@@ -1,0 +1,85 @@
+#!/bin/bash
+source taplib.sh
+cd $(dirname "$0")
+
+SOURCE_FILE="source.txt"
+AUX_FILE="aux.txt"
+WORK_FILE="work.txt"
+MOUNT_FILE="mount"
+UNMOUNT="fusermount -zu"
+
+cleanup() {
+    (${UNMOUNT} "${MOUNT_FILE}" || true) 1>/dev/null 2>&1
+    rm -rf "${SOURCE_FILE}"
+    rm -rf "${AUX_FILE}"
+    rm -rf "${WORK_FILE}"
+    rm -rf "${MOUNT_FILE}"
+}
+
+make_files () {
+    local size="$1"
+
+    set -euo pipefail
+    cleanup
+
+    touch "${MOUNT_FILE}"
+    touch "${SOURCE_FILE}"
+    touch "${AUX_FILE}"
+
+    if [ "${size}" != 0 ]; then
+        dd if=/dev/urandom of="${SOURCE_FILE}" bs=${size} count=1 status=none
+    fi
+
+    if [ "${size}" != 0 ]; then
+        dd if=/dev/urandom of="${AUX_FILE}" bs=${size} count=1 status=none
+    fi
+
+    sync
+    cp ${SOURCE_FILE} "${WORK_FILE}"
+}
+
+trap cleanup INT TERM EXIT
+
+assert_ok "Testing a whole-file write to a whole-file mount" << END
+    make_files 32
+    cp "${SOURCE_FILE}" "${AUX_FILE}"
+
+    make_files 32
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
+
+    EXPECTED="\$(./reader.py "${AUX_FILE}" -c32 -ix)"
+    ACTUAL="\$(./reader.py "${SOURCE_FILE}" -x)"
+    ! test "\${EXPECTED}" = "\${ACTUAL}"
+
+    EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c32 -ix)"
+    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+    test "\${EXPECTED}" = "\${ACTUAL}"
+
+    dd if=${AUX_FILE} of="${MOUNT_FILE}" status=none
+    sync
+
+    EXPECTED="\$(./reader.py "${AUX_FILE}" -c32 -ix)"
+    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+    test "\${EXPECTED}" = "\${ACTUAL}"
+
+    ACTUAL="\$(./reader.py "${SOURCE_FILE}" -x)"
+    test "\${EXPECTED}" = "\${ACTUAL}"
+END
+
+assert_ok "Testing a whole-file write to a partial mount" << END
+    make_files 32
+    cp "${SOURCE_FILE}" "${AUX_FILE}"
+
+    make_files 32
+    partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,size=8
+
+    EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
+    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+    test "\${EXPECTED}" = "\${ACTUAL}"
+
+    ./reader.py "${AUX_FILE}" -n -c8 | ./writer.py "${MOUNT_FILE}"
+
+    EXPECTED="\$(./reader.py "${AUX_FILE}" -c8 -x)"
+    ACTUAL="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
+    test "\${EXPECTED}" = "\${ACTUAL}"
+END

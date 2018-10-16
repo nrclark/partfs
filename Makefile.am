@@ -8,7 +8,8 @@ TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/build-aux/tap-d
 TEST_LOG_DRIVER_FLAGS = --comments
 TESTS_ENVIRONMENT = PATH=$(abs_srcdir)/test:$(abs_builddir):$(PATH)
 TESTS = \
+    test/mount_options.test \
     test/read.test \
-    test/mount_options.test
+    test/write.test
 
 EXTRA_DIST += $(TESTS)
