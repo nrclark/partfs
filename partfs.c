@@ -17,23 +17,21 @@
  *  Copyright 2018, Nicholas Clark */
 
 #define _POSIX_C_SOURCE 200809L
+#define FUSE_USE_VERSION 26
 
 #include <errno.h>
-#include <stdio.h>
+#include <fuse.h>
+#include <libgen.h>
+#include <libintl.h>
 #include <limits.h>
+#include <locale.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <libgen.h>
-#include <libintl.h>
-#include <locale.h>
-
-#define FUSE_USE_VERSION 26
-#include <fuse.h>
 
 #include "config.h"
-
 #define _(x) gettext(x)
 
 /*----------------------------------------------------------------------------*/
