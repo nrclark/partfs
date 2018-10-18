@@ -545,7 +545,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "%s: ", progname);
         fprintf(stderr, _("error: couldn't open mount-point [%s]"),
                 config.mountpoint);
-        fprintf(stderr, " (%s)", strerror(errno));
+        fprintf(stderr, " (%s)\n", strerror(errno));
         controlled_exit(&context, 1);
     }
 
@@ -566,7 +566,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "%s: ", progname);
         fprintf(stderr, _("error: couldn't open file [%s]"),
                 config.source);
-        fprintf(stderr, " (%s)", strerror(errno));
+        fprintf(stderr, " (%s)\n", strerror(errno));
         controlled_exit(&context, 1);
     }
 
