@@ -1,7 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4 --install
 EXTRA_DIST = VERSION README.md autogen.sh guess_flags.sh
 SUBDIRS = po
-DEFS += -DLOCALEDIR=\"$(localedir)\"
 
 bin_PROGRAMS = partfs
 partfs_SOURCES = partfs.c

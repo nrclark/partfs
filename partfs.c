@@ -512,7 +512,11 @@ int main(int argc, char *argv[])
 
     setlocale(LC_ALL, "");
 #ifdef ENABLE_NLS
-    bindtextdomain(PACKAGE, LOCALEDIR);
+    if (getenv("LOCALEDIR")) {
+        bindtextdomain(PACKAGE, getenv("LOCALEDIR"));
+    } else {
+        bindtextdomain(PACKAGE, LOCALEDIR);
+    }
     textdomain(PACKAGE);
 #endif
 

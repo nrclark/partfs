@@ -20,8 +20,13 @@ AC_PREREQ([2.69])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_USE_SYSTEM_EXTENSIONS
 
-AM_GNU_GETTEXT_VERSION([0.19])
+AM_GNU_GETTEXT_REQUIRE_VERSION([0.19])
 AM_GNU_GETTEXT([external])
+
+AS_IF([test "x$USE_NLS" = xyes],
+      [AX_DEFINE_DIR([LOCALEDIR], [localedir],
+                     [Define to your gettext locales directory])]
+)
 
 #------------------------ Confirm Rand() Requirements  ------------------------#
 
@@ -83,7 +88,7 @@ AX_MAKE_ENABLE_OPT([werror], [no], [Build with -Werror])
 AS_IF([test "x$enable_lint" = xno], [], [
   AX_ENABLE_CFLAGS([-std=c99])
   AX_ENABLE_EVERY_WARNING([-Wtraditional -Wtraditional-conversion \
-                           -Wabi -Wpadded])
+                           -Wabi -Wpadded -Wformat-nonliteral])
 ])
 
 AS_IF([test "x$enable_warnings" = xno], [], [
