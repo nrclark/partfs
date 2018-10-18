@@ -26,11 +26,15 @@
 #include <string.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <libintl.h>
+#include <locale.h>
 
 #define FUSE_USE_VERSION 26
 #include <fuse.h>
 
 #include "config.h"
+
+#define _(x) gettext(x)
 
 /*----------------------------------------------------------------------------*/
 
@@ -73,21 +77,6 @@ static struct fuse_opt partfs_opts[] = {
     FUSE_OPT_KEY("--help", 0),
     FUSE_OPT_END
 };
-
-static const char partfs_help[] =
-"Mount part of TARGET as a different file at MOUNTPOINT.\n"
-"\n"
-"Usage: %s TARGET MOUNTPOINT [options]\n"
-"\n"
-"General options:\n"
-"    -o opt,[opt...]        mount options\n"
-"    -h   --help            print help\n"
-"    -V   --version         print version\n"
-"\n"
-"PartFS options:\n"
-"    -o offset=NBYTES       offset into TARGET (in bytes)\n"
-"    -o sizelimit=NBYTES    length of the mounted segment (in bytes)\n"
-"\n";
 
 /*----------------------------------------------------------------------------*/
 
@@ -176,7 +165,22 @@ static void exit_help(void)
     char help_opt[4] = "-ho";
     char *argv[2] = {progname, help_opt};
 
+    const char *partfs_help =
+        _("Mount part of SOURCE as a different file at MOUNTPOINT.\n"
+          "\n"
+          "Usage: %s SOURCE MOUNTPOINT [options]\n"
+          "\n"
+          "General options:\n"
+          "    -o opt,[opt...]        mount options\n"
+          "    -h   --help            print help\n"
+          "    -V   --version         print version\n"
+          "\n"
+          "PartFS options:\n"
+          "    -o offset=NBYTES       offset into SOURCE (in bytes)\n"
+          "    -o sizelimit=NBYTES    max length of MOUNT (in bytes)");
+
     fprintf(stderr, partfs_help, progname);
+    fprintf(stderr, "\n\n");
     fuse_main(2, argv, &dummy_ops, NULL);
     exit(1);
 }
@@ -189,7 +193,8 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
 
     switch (key) {
         case KEY_VERSION:
-            fprintf(stderr, "PartFS version: "PACKAGE_VERSION "\n");
+            fprintf(stderr, _("PartFS version: %s"), PACKAGE_VERSION);
+            fprintf(stderr, "\n");
             fuse_opt_add_arg(outargs, "--version");
             fuse_main(outargs->argc, outargs->argv, &dummy_ops, NULL);
             fuse_opt_free_args(outargs);
@@ -199,8 +204,9 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
         case FUSE_OPT_KEY_NONOPT:
             if (config->source[0] == '\x00') {
                 if (arg[0] == '\x00') {
-                    fprintf(stderr, "%s: error: source must not be an empty "
-                            "string.\n", progname);
+                    fprintf(stderr, "%s: ", progname);
+                    fprintf(stderr, "%s\n",
+                            _("error: source must not be an empty string."));
                     fuse_opt_free_args(outargs);
                     exit(1);
                 }
@@ -210,8 +216,10 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
 
             if (config->mountpoint[0] == '\x00') {
                 if (arg[0] == '\x00') {
-                    fprintf(stderr, "%s: error: mount-point must not be an "
-                            "empty string.\n", progname);
+                    fprintf(stderr, "%s: ", progname);
+                    fprintf(stderr, "%s\n",
+                            _("error: mount-point must not be an empty string.")
+                            );
                     fuse_opt_free_args(outargs);
                     exit(1);
                 }
@@ -219,8 +227,9 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
                 return 1;
             }
 
-            fprintf(stderr, "%s: error: invalid additional argument [%s].\n",
-                    progname, arg);
+            fprintf(stderr, "%s: %s [%s]\n", progname, _("error: invalid "
+                                                         "additional argument"),
+                    arg);
 
             fuse_opt_free_args(outargs);
             exit(1);
@@ -238,16 +247,16 @@ static struct partfs_context * partfs_get_context(void)
     struct partfs_context *result;
 
     if (fuse_context == NULL) {
-        fprintf(stderr, "%s: error: couldn't retrieve fuse context.\n",
-                progname);
+        fprintf(stderr, "%s: ", progname);
+        fprintf(stderr, "%s\n", _("error: couldn't retrieve FUSE context."));
         exit(0);
     }
 
     result = (struct partfs_context *)(fuse_context->private_data);
 
     if (result == NULL) {
-        fprintf(stderr, "%s: error: couldn't retrieve partfs context.\n",
-                progname);
+        fprintf(stderr, "%s: ", progname);
+        fprintf(stderr, "%s\n", _("error: couldn't retrieve PartFS context."));
         exit(0);
     }
 
@@ -501,6 +510,12 @@ int main(int argc, char *argv[])
     struct stat stat_buffer;
     int result;
 
+    setlocale(LC_ALL, "");
+#ifdef ENABLE_NLS
+    bindtextdomain(PACKAGE, LOCALEDIR);
+    textdomain(PACKAGE);
+#endif
+
     safecopy(progname, basename(argv[0]), sizeof(progname));
 
     for (int x = 1; x < argc; x++) {
@@ -513,27 +528,31 @@ int main(int argc, char *argv[])
     fuse_opt_parse(&args, &config, partfs_opts, partfs_opt_proc);
 
     if (config.source[0] == '\x00') {
-        fprintf(stderr, "%s: error: source not specified.\n", progname);
+        fprintf(stderr, "%s: %s\n", progname,
+                _("error: source not specified."));
         controlled_exit(&context, 1);
     }
 
     if (config.mountpoint[0] == '\x00') {
-        fprintf(stderr, "%s: error: mount-point not specified.\n", progname);
+        fprintf(stderr, "%s: %s\n", progname,
+                _("error: mount-point not specified."));
         controlled_exit(&context, 1);
     }
 
     result = lstat(config.mountpoint, &stat_buffer);
 
     if (result != 0) {
-        fprintf(stderr, "%s: error: couldn't open mount-point [%s] (%s)\n",
-                progname, config.mountpoint, strerror(errno));
+        fprintf(stderr, "%s: ", progname);
+        fprintf(stderr, _("error: couldn't open mount-point [%s]"),
+                config.mountpoint);
+        fprintf(stderr, " (%s)", strerror(errno));
         controlled_exit(&context, 1);
     }
 
     if (((stat_buffer.st_size != 0) && (config.nonempty == 0)) ||
         (S_ISREG(stat_buffer.st_mode) == 0)) {
-        fprintf(stderr, "%s: error: mount-point is not an empty file.\n",
-                progname);
+        fprintf(stderr, "%s: %s\n", progname,
+                _("error: mount-point is not an empty file."));
         controlled_exit(&context, 1);
     }
 
@@ -544,16 +563,20 @@ int main(int argc, char *argv[])
     }
 
     if (context.source_fd < 0) {
-        fprintf(stderr, "%s: error: couldn't open file [%s] (%s)\n",
-                progname, config.source, strerror(errno));
+        fprintf(stderr, "%s: ", progname);
+        fprintf(stderr, _("error: couldn't open file [%s]"),
+                config.source);
+        fprintf(stderr, " (%s)", strerror(errno));
         controlled_exit(&context, 1);
     }
 
     result = stat(config.source, &stat_buffer);
 
     if (result != 0) {
-        fprintf(stderr, "%s: error: couldn't stat file [%s] (%s)\n",
-                progname, config.source, strerror(errno));
+        fprintf(stderr, "%s: ", progname);
+        fprintf(stderr, _("error: couldn't stat file [%s]"),
+                config.source);
+        fprintf(stderr, " (%s)", strerror(errno));
         controlled_exit(&context, 1);
     }
 
@@ -562,8 +585,10 @@ int main(int argc, char *argv[])
     }
 
     if ((config.offset + config.size) > (size_t) stat_buffer.st_size) {
-        fprintf(stderr, "%s: error: requested size or offset extends past the"
-                " end of %s\n", progname, basename(config.source));
+        fprintf(stderr, "%s: ", progname);
+        fprintf(stderr, _("error: requested size or offset extends past the"
+                          " end of [%s]"), basename(config.source));
+        fprintf(stderr, "\n");
         controlled_exit(&context, 1);
     }
 

@@ -1,0 +1,92 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-10-17 22:38-0600\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: partfs.c:169
+#, c-format
+msgid ""
+"Mount part of SOURCE as a different file at MOUNTPOINT.\n"
+"\n"
+"Usage: %s SOURCE MOUNTPOINT [options]\n"
+"\n"
+"General options:\n"
+"    -o opt,[opt...]        mount options\n"
+"    -h   --help            print help\n"
+"    -V   --version         print version\n"
+"\n"
+"PartFS options:\n"
+"    -o offset=NBYTES       offset into SOURCE (in bytes)\n"
+"    -o sizelimit=NBYTES    max length of MOUNT (in bytes)"
+msgstr ""
+
+#: partfs.c:196
+#, c-format
+msgid "PartFS version: %s"
+msgstr ""
+
+#: partfs.c:209
+msgid "error: source must not be an empty string."
+msgstr ""
+
+#: partfs.c:221
+msgid "error: mount-point must not be an empty string."
+msgstr ""
+
+#: partfs.c:230
+msgid "error: invalid additional argument"
+msgstr ""
+
+#: partfs.c:251
+msgid "error: couldn't retrieve FUSE context."
+msgstr ""
+
+#: partfs.c:259
+msgid "error: couldn't retrieve PartFS context."
+msgstr ""
+
+#: partfs.c:532
+msgid "error: source not specified."
+msgstr ""
+
+#: partfs.c:538
+msgid "error: mount-point not specified."
+msgstr ""
+
+#: partfs.c:546
+#, c-format
+msgid "error: couldn't open mount-point [%s]"
+msgstr ""
+
+#: partfs.c:555
+msgid "error: mount-point is not an empty file."
+msgstr ""
+
+#: partfs.c:567
+#, c-format
+msgid "error: couldn't open file [%s]"
+msgstr ""
+
+#: partfs.c:577
+#, c-format
+msgid "error: couldn't stat file [%s]"
+msgstr ""
+
+#: partfs.c:589
+#, c-format
+msgid "error: requested size or offset extends past the end of [%s]"
+msgstr ""

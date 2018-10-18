@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
-autoreconf -i
+autoreconf -i --force
 automake --add-missing
