@@ -92,7 +92,7 @@ tidy-%: %
 	@echo Analyzing $* with clang-tidy/clang-check...
 	@clang-tidy \
 	    "-checks=*$(TIDY_BLACKLIST_STRING)" \
-	    "-header-filter=.*" $(TIDY_CFLAGS) $* -- 2>/dev/null | \
+	    "-header-filter=.*" -extra-arg="$(TIDY_CFLAGS)" $* -- 2>/dev/null | \
 	    (grep -iP "(warning|error)[:]" -A2 --color || true)
 	@clang-check -analyze $* -extra-arg="$(TIDY_CFLAGS)" --
 	@rm -f $(basename $*).plist
