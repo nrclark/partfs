@@ -75,16 +75,18 @@ static struct fuse_opt partfs_opts[] = {
 };
 
 static const char partfs_help[] =
-"usage: %s mountpoint [options]\n"
+"Mount part of TARGET as a different file at MOUNTPOINT.\n"
 "\n"
-"general options:\n"
-"    -o opt,[opt...]  mount options\n"
-"    -h   --help      print help\n"
-"    -V   --version   print version\n"
+"Usage: %s TARGET MOUNTPOINT [options]\n"
+"\n"
+"General options:\n"
+"    -o opt,[opt...]        mount options\n"
+"    -h   --help            print help\n"
+"    -V   --version         print version\n"
 "\n"
 "PartFS options:\n"
-"    -o offset=NBYTES\n"
-"    -o sizelimit=NBYTES\n"
+"    -o offset=NBYTES       offset into TARGET (in bytes)\n"
+"    -o sizelimit=NBYTES    length of the mounted segment (in bytes)\n"
 "\n";
 
 /*----------------------------------------------------------------------------*/
