@@ -1,4 +1,6 @@
 #!/bin/sh
 set -e
-autoreconf -i --force
+
+autopoint --force
+autoreconf -i --force --verbose
 automake --add-missing

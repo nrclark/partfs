@@ -4,7 +4,6 @@
 m4_include([m4/semantic_version.m4])
 SEMANTIC_VERSION_SET_FILE([VERSION])
 AC_INIT([partfs], SEMANTIC_VERSION, [nicholas.clark@gmail.com])
-AC_SUBST([LIB_RELEASE],[SEMANTIC_VERSION])
 
 #------------------------ Configure Source Locations  -------------------------#
 
@@ -20,13 +19,13 @@ AC_PREREQ([2.69])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_USE_SYSTEM_EXTENSIONS
 
-AM_GNU_GETTEXT_REQUIRE_VERSION([0.19])
+AM_GNU_GETTEXT_REQUIRE_VERSION(0)
 AM_GNU_GETTEXT([external])
 
-AS_IF([test "x$USE_NLS" = xyes],
-      [AX_DEFINE_DIR([LOCALEDIR], [localedir],
-                     [Define to your gettext locales directory])]
-)
+AS_IF([test "x$USE_NLS" = xyes], [
+    AX_DEFINE_DIR([LOCALEDIR], [localedir],
+                  [Define to your gettext locales directory])
+])
 
 #------------------------ Confirm Rand() Requirements  ------------------------#
 
@@ -131,5 +130,5 @@ AS_IF([test "x$enable_werror" = xno], [], [
 
 #------------------------------ Generate Outputs ------------------------------#
 
-AC_CONFIG_FILES([Makefile po/Makefile.in po/Makevars])
+AC_CONFIG_FILES([Makefile po/Makevars po/Makefile.in])
 AC_OUTPUT

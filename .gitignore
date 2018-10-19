@@ -21,4 +21,5 @@ lint_flags.mk
 m4/*
 !m4/ax_*.m4
 !m4/semantic_version.m4
+!po/*.po
 stamp-h1
