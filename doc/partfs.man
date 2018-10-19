@@ -74,6 +74,9 @@
 .PD
 .LP
 
+.SS Unmounting:
+\fBfusermount\fR \fB-u\fR \fIMOUNTPOINT\fR
+
 .RS -4
 See \fBpartfs --help\fR for a full list of mouting options.
 .RE
@@ -128,52 +131,108 @@ second, it doesn't offer direct access to any filesystems stored within the
 mounted image. Consider using with fuse2fs or a similar tool for unprivileged
 filesystem access.
 
+\fIMOUNTPOINT\fR must be an empty file unless the \fBnonempty\fR option is
+supplied, as described under 'General FUSE options' below.
+
 PartFS exposes the full set of FUSE mounting options. These include \fIro\fR for
 read-only mounts, \fIallow_other\fR for multi-user mounts, \fInonempty\fR for
 self-mounts or mounting over non-empty files, and many more. See
 \fBpartfs --help\fR for a complete list.
 
+To unmount a PartFS file, use the \fBfusermount\fR utility.
+
 .\"-----------------------------------------------------------------------------
 
-NAME
-SYNOPSIS
-CONFIGURATION      [Normally only in Section 4]
-DESCRIPTION
-OPTIONS            [Normally only in Sections 1, 8]
-EXIT STATUS        [Normally only in Sections 1, 8]
-RETURN VALUE       [Normally only in Sections 2, 3]
-ERRORS             [Typically only in Sections 2, 3]
-ENVIRONMENT
-FILES
-VERSIONS           [Normally only in Sections 2, 3]
-CONFORMING TO
-NOTES
-BUGS
-EXAMPLE
-SEE ALSO
+.SH OPTIONS
+.SS General Options
+.TP
+.B -h, --help
+Display the help message and exit. Includes FUSE's help message.
 
-.\" .Sh CONTEXT 
-.\" For section 9 functions only. 
-.\" .SH IMPLEMENTATION NOTES 
-.\" Not used in OpenBSD. 
-.\" .SH RETURN VALUES 
-.\" For sections 2, 3, and 9 function return values only. 
-.\" .SH ENVIRONMENT 
-.\" For sections 1, 6, 7, and 8 only. 
-.\" .SH FILES 
-.\" .SH EXIT STATUS 
-.\" For sections 1, 6, and 8 only. 
-.\" .SH EXAMPLES 
-.\" .SH DIAGNOSTICS 
-.\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only. 
-.\" .SH ERRORS 
-.\" For sections 2, 3, 4, and 9 errno settings only. 
-.\" .SH SEE ALSO 
-.\" .BR foobar ( 1 ) 
-.\" .SH STANDARDS 
-.\" .SH HISTORY 
-.\" .SH AUTHORS 
-.\" .SH CAVEATS 
-.\" .SH BUGS 
-.\" .SH SECURITY CONSIDERATIONS 
-.\" Not used in OpenBSD.
+.TP
+.B -V, --version
+Display the program version-number and exit.
+
+.SS Mount Options
+Like many other fileysstem-mount programs, mount options can be specified in
+a single argument (-o \fIOPT1,OPT2=val2,OPT3\fR) as a list of multiple
+arguments (-o \fIOPT1\fR -o \fIOPT2=val2\fR -o \fIOPT3\fR), or as a mixture of
+the two styles.
+.LP
+.RS -2n
+PartFS-specific options:
+.RE
+.TP
+.B -o offset=NBYTES
+The number of bytes to skip in \fISOURCE\fR (default: 0). Byte 1 of
+\fIMOUNTPOINT\fR will map to byte [\fBoffset\fR + 1] of \fISOURCE\fR, as
+described in the \fBsizelimit\fR option below. \fISOURCE\fR's contents below
+the offset are never modified.
+
+.TP
+.B -o sizelimit=NBYTES
+Starting length (and maxiumum length) of \fIMOUNTPOINT\fR in bytes. The
+mapped region of \fISOURCE\fR will go from byte [\fBoffset\fR] to byte
+[\fBsizelimit\fR-1], including both edges. So a mount with a 1500-byte sizelimit
+will and no offset will include bytes 0-1499 (for a total length of 1500).
+\fISOURCE\fR's contents above [offset + sizelimit] are never modified.
+
+.RS -2n
+General FUSE options:
+.RE
+.LP
+There are a lot of FUSE options available, all of which are provided by FUSE
+instead of directly from PartFS. A complete list can be found by running 
+\fBpartfs --help\fR. Some of the more interesting options are documented here:
+
+.TP
+.B -o ro
+Mounted file is read-only, and can't be modified by any user.
+
+.TP
+.B -o allow_root
+Mounted file can be accessed by root as well as the mounter. This option and
+\fBallow_other\fR are mutually exclusive.
+
+.TP
+\fB-o allow_other\fR (if enabled on your system)
+Mounted file can be accessed by any user. This option and \fBallow_root\fR are
+mutually exclusive.
+
+.TP
+.B -o nonempty
+Allow mounting over a non-empty file. By default, FUSE will only mount to empty
+files (in order to avoid hiding data). If supplied, this option will allow you
+to mount on-top of any file (even including \fISOURCE\fR) if desired.
+
+.TP
+.B -f
+Run in the foreground instead of starting a background process and returning.
+
+.\"-----------------------------------------------------------------------------
+
+.SH NOTES
+
+PartFS is a FUSE filesystem, and will support slightly different options and
+unmount procedures depending on your system's FUSE installation.
+
+Also note that PartFS is a file-to-file mount, and doesn't give you direct
+access to an image's filesystem. To edit a filesystem, a secondary mount (using
+\fBfuse2fs\fR or a similar tool) is required.
+
+.SH SEE ALSO
+.SS \fRManpages:
+.LP
+.PD 0
+.BR fuse( 4 ),
+.LP
+.BR fusermount( 1 ),
+.LP
+.BR fuse2fs( 1 ),
+.LP
+.BR mount.fuse( 8 ),
+.LP
+.PD
+.SS \fRURL:
+.I https://github.com/nrclark/partfs
+
