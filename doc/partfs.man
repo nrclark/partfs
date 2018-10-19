@@ -1,0 +1,179 @@
+.TH "PARTFS" 1 "October 2018" "PartFS version 1.0"
+
+.\"-----------------------------------------------------------------------------
+
+.SH NAME 
+.B partfs
+\(en Mount a region of \fISOURCE\fR as a different file at \fIMOUNTPOINT\fR.
+
+.\"-----------------------------------------------------------------------------
+
+.SH SYNOPSIS
+.B partfs
+.RB [ \-h/--help | \-V/--version ]
+.LP
+.PD 0
+.B partfs
+[-o \fBoptions\fR]
+.I SOURCE
+.I MOUNTPOINT
+.LP
+
+.B partfs
+.I SOURCE
+.I MOUNTPOINT
+[-o \fBoptions\fR]
+.LP
+.LP
+.B partfs
+.I SOURCE
+[-o \fBoptions\fR]
+.I MOUNTPOINT
+.PD
+
+.SS Size/Offset Examples:
+.PD 0
+.B partfs
+.I SOURCE
+.I MOUNTPOINT
+-o offset=\fINBYTES\fR[,\fBoptions\fR]
+.LP
+
+.B partfs
+.I SOURCE
+.I MOUNTPOINT
+-o sizelimit=\fINBYTES\fR[,\fBoptions\fR]
+.LP
+
+.B partfs
+.I SOURCE
+.I MOUNTPOINT
+-o offset=\fINBYTES\fR,sizelimit=\fINBYTES\fR[,\fBoptions\fR]
+.PD
+.LP
+
+.SS Common FUSE Options:
+.PD 0
+
+.B partfs
+.I SOURCE
+.I MOUNTPOINT
+-o ro (mounts as read-only)
+.LP
+
+.B partfs
+.I SOURCE
+.I MOUNTPOINT
+-o allow_other (allows other users to access mount)
+.LP
+
+.B partfs
+.I SOURCE
+.I MOUNTPOINT
+-o nonempty (allow mounting over a non-empty file, or over itself)
+.PD
+.LP
+
+.RS -4
+See \fBpartfs --help\fR for a full list of mouting options.
+.RE
+
+.\"-----------------------------------------------------------------------------
+
+.SH DESCRIPTION 
+
+PartFS is a FUSE-based tool for accessing a chunk of a SOURCE file as if it
+were a separate file at MOUNTPOINT. It's intended for use in creating/modifying
+disk image files.
+.LP
+
+Say that SOURCE was a 600000-byte file with the following layout:
+.LP
+.PD 0
+.RS 4n
+[Region 1] Bytes 1 to 5000: Bootloader region
+.LP
+[Region 2] Bytes 5001 to 105000: System data
+.LP
+[Region 3] Bytes 105001 to 205000: System Partition
+.LP
+[Region 4] Bytes 205001 to 600000: User Data
+.RE
+.PD
+.LP
+PartFS would allow you to mount any of these regions and access them as if
+they were standalone files. In the example given above, the correct mounting
+parameters would be:
+.LP
+.PD 0
+.RS 4n
+partfs \fISOURCE\fR \fIMOUNTPOINT\fR -o offset=0,sizelimit=5000
+.LP
+partfs \fISOURCE\fR \fIMOUNTPOINT\fR -o offset=5000,sizelimit=100000
+.LP
+partfs \fISOURCE\fR \fIMOUNTPOINT\fR -o offset=105000,sizelimit=100000
+.LP
+partfs \fISOURCE\fR \fIMOUNTPOINT\fR -o offset=205000,sizelimit=395000
+.RE
+.PD
+.LP
+Note that region 1 could also be mounted with no offset because it starts at
+byte 0. Similarly, Region 4 could be mounted with no size-limit because it goes
+to the end of the file.
+.LP
+
+PartFS is logically similar to a loopback-mounted image under Linux. It has two
+key differences though. First, it can be done as an unprivileged user. And
+second, it doesn't offer direct access to any filesystems stored within the
+mounted image. Consider using with fuse2fs or a similar tool for unprivileged
+filesystem access.
+
+PartFS exposes the full set of FUSE mounting options. These include \fIro\fR for
+read-only mounts, \fIallow_other\fR for multi-user mounts, \fInonempty\fR for
+self-mounts or mounting over non-empty files, and many more. See
+\fBpartfs --help\fR for a complete list.
+
+.\"-----------------------------------------------------------------------------
+
+NAME
+SYNOPSIS
+CONFIGURATION      [Normally only in Section 4]
+DESCRIPTION
+OPTIONS            [Normally only in Sections 1, 8]
+EXIT STATUS        [Normally only in Sections 1, 8]
+RETURN VALUE       [Normally only in Sections 2, 3]
+ERRORS             [Typically only in Sections 2, 3]
+ENVIRONMENT
+FILES
+VERSIONS           [Normally only in Sections 2, 3]
+CONFORMING TO
+NOTES
+BUGS
+EXAMPLE
+SEE ALSO
+
+.\" .Sh CONTEXT 
+.\" For section 9 functions only. 
+.\" .SH IMPLEMENTATION NOTES 
+.\" Not used in OpenBSD. 
+.\" .SH RETURN VALUES 
+.\" For sections 2, 3, and 9 function return values only. 
+.\" .SH ENVIRONMENT 
+.\" For sections 1, 6, 7, and 8 only. 
+.\" .SH FILES 
+.\" .SH EXIT STATUS 
+.\" For sections 1, 6, and 8 only. 
+.\" .SH EXAMPLES 
+.\" .SH DIAGNOSTICS 
+.\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only. 
+.\" .SH ERRORS 
+.\" For sections 2, 3, 4, and 9 errno settings only. 
+.\" .SH SEE ALSO 
+.\" .BR foobar ( 1 ) 
+.\" .SH STANDARDS 
+.\" .SH HISTORY 
+.\" .SH AUTHORS 
+.\" .SH CAVEATS 
+.\" .SH BUGS 
+.\" .SH SECURITY CONSIDERATIONS 
+.\" Not used in OpenBSD.
