@@ -4,6 +4,7 @@ SUBDIRS = po
 
 bin_PROGRAMS = partfs
 partfs_SOURCES = partfs.c
+dist_man_MANS = man/partfs.1
 
 TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/build-aux/tap-driver.sh
 TEST_LOG_DRIVER_FLAGS = --comments

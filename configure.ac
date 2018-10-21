@@ -4,6 +4,7 @@
 m4_include([m4/semantic_version.m4])
 SEMANTIC_VERSION_SET_FILE([VERSION])
 AC_INIT([partfs], SEMANTIC_VERSION, [nicholas.clark@gmail.com])
+AC_SUBST(MANPAGE_DATE, "October 2018")
 
 #------------------------ Configure Source Locations  -------------------------#
 
@@ -130,5 +131,6 @@ AS_IF([test "x$enable_werror" = xno], [], [
 
 #------------------------------ Generate Outputs ------------------------------#
 
-AC_CONFIG_FILES([Makefile po/Makevars po/Makefile.in])
+AC_CONFIG_FILES([Makefile po/Makevars po/Makefile.in man/partfs.1], [],
+                [MANPAGE_DATE=$MANPAGE_DATE])
 AC_OUTPUT
