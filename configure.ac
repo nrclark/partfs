@@ -20,7 +20,7 @@ AC_PREREQ([2.69])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_USE_SYSTEM_EXTENSIONS
 
-AM_GNU_GETTEXT_REQUIRE_VERSION(0)
+AM_GNU_GETTEXT_VERSION([0.18])
 AM_GNU_GETTEXT([external])
 
 AS_IF([test "x$USE_NLS" = xyes], [
@@ -132,5 +132,5 @@ AS_IF([test "x$enable_werror" = xno], [], [
 #------------------------------ Generate Outputs ------------------------------#
 
 AC_CONFIG_FILES([Makefile po/Makevars po/Makefile.in man/partfs.1], [],
-                [MANPAGE_DATE=$MANPAGE_DATE])
+                [MANPAGE_DATE="$MANPAGE_DATE"])
 AC_OUTPUT
