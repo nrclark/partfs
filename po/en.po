@@ -3,13 +3,12 @@
 # Copyright (C) 2018 Nicholas Clark
 # This file is distributed under the same license as the partfs package.
 # Originally written by Nicholas Clark <nicholas.clark@gmail.com>
-
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: partfs 1.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/nrclark/partfs/issues\n"
-"POT-Creation-Date: 2018-10-18 21:40-0600\n"
+"POT-Creation-Date: 2018-11-02 05:11-0600\n"
 "PO-Revision-Date: 2018-10-17 22:38-0600\n"
 "Last-Translator: Nicholas Clark <nicholas.clark@gmail.com>\n"
 "Language-Team: none\n"

@@ -1,6 +1,7 @@
 #!/bin/bash
-source taplib.sh
-cd $(dirname "$0")
+SRCDIR=$(dirname "$0")
+
+source "$SRCDIR/taplib.sh"
 
 SOURCE_FILE="source.txt"
 AUX_FILE="aux.txt"
@@ -54,22 +55,22 @@ assert_ok "Testing a whole-file write to a whole-file mount" << END
     make_files 32
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
 
-    EXPECTED="\$(./reader.py "${AUX_FILE}" -c32 -ix)"
-    ACTUAL="\$(./reader.py "${SOURCE_FILE}" -x)"
+    EXPECTED="\$("$SRCDIR/reader.py" "${AUX_FILE}" -c32 -ix)"
+    ACTUAL="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -x)"
     ! test "\${EXPECTED}" = "\${ACTUAL}"
 
-    EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c32 -ix)"
-    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+    EXPECTED="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c32 -ix)"
+    ACTUAL="\$("$SRCDIR/reader.py" "${MOUNT_FILE}" -x)"
     test "\${EXPECTED}" = "\${ACTUAL}"
 
     dd if=${AUX_FILE} of="${MOUNT_FILE}" status=none
     sync
 
-    EXPECTED="\$(./reader.py "${AUX_FILE}" -c32 -ix)"
-    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+    EXPECTED="\$("$SRCDIR/reader.py" "${AUX_FILE}" -c32 -ix)"
+    ACTUAL="\$("$SRCDIR/reader.py" "${MOUNT_FILE}" -x)"
     test "\${EXPECTED}" = "\${ACTUAL}"
 
-    ACTUAL="\$(./reader.py "${SOURCE_FILE}" -x)"
+    ACTUAL="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -x)"
     test "\${EXPECTED}" = "\${ACTUAL}"
 END
 
@@ -80,20 +81,20 @@ assert_ok "Testing a whole-file write to a partial mount" << END
     make_files 32
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,sizelimit=8
 
-    EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
-    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+    EXPECTED="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o16 -x)"
+    ACTUAL="\$("$SRCDIR/reader.py" "${MOUNT_FILE}" -x)"
     test "\${EXPECTED}" = "\${ACTUAL}"
 
-    EXPECTED_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
-    EXPECTED_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+    EXPECTED_BEFORE="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o8 -x)"
+    EXPECTED_AFTER="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o24 -x)"
 
-    ./reader.py "${AUX_FILE}" -n -c8 | ./writer.py "${MOUNT_FILE}"
+    "$SRCDIR/reader.py" "${AUX_FILE}" -n -c8 | "$SRCDIR/writer.py" "${MOUNT_FILE}"
 
-    ACTUAL_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
-    ACTUAL_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+    ACTUAL_BEFORE="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o8 -x)"
+    ACTUAL_AFTER="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o24 -x)"
 
-    EXPECTED="\$(./reader.py "${AUX_FILE}" -c8 -x)"
-    ACTUAL="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
+    EXPECTED="\$("$SRCDIR/reader.py" "${AUX_FILE}" -c8 -x)"
+    ACTUAL="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o16 -x)"
 
     test "\${EXPECTED_BEFORE}" = "\${ACTUAL_BEFORE}"
     test "\${EXPECTED}" = "\${ACTUAL}"
@@ -108,22 +109,22 @@ assert_ok "Testing an oversized write to a partial mount" << END
     make_files 32
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,sizelimit=8
 
-    EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
-    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+    EXPECTED="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o16 -x)"
+    ACTUAL="\$("$SRCDIR/reader.py" "${MOUNT_FILE}" -x)"
     test "\${EXPECTED}" = "\${ACTUAL}"
 
-    EXPECTED_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
-    EXPECTED_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+    EXPECTED_BEFORE="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o8 -x)"
+    EXPECTED_AFTER="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o24 -x)"
 
-    ./reader.py "${AUX_FILE}" -n -c16 | \
-        (! ./writer.py -i "${MOUNT_FILE}" 2>/dev/null)
+    "$SRCDIR/reader.py" "${AUX_FILE}" -n -c16 | \
+        (! "$SRCDIR/writer.py" -i "${MOUNT_FILE}" 2>/dev/null)
 
-    ACTUAL_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
-    ACTUAL_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+    ACTUAL_BEFORE="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o8 -x)"
+    ACTUAL_AFTER="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o24 -x)"
 
-    EXPECTED="\$(./reader.py "${AUX_FILE}" -c8 -x)"
-    ACTUAL="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
-    ACTUAL_MOUNTED="\$(./reader.py "${MOUNT_FILE}" -x)"
+    EXPECTED="\$("$SRCDIR/reader.py" "${AUX_FILE}" -c8 -x)"
+    ACTUAL="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o16 -x)"
+    ACTUAL_MOUNTED="\$("$SRCDIR/reader.py" "${MOUNT_FILE}" -x)"
 
     test "\${EXPECTED_BEFORE}" = "\${ACTUAL_BEFORE}"
     test "\${EXPECTED}" = "\${ACTUAL}"
@@ -140,12 +141,12 @@ assert_ok "Testing a truncate operation" << END
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}" -ooffset=16,sizelimit=8
     validate_size "${MOUNT_FILE}" 8
 
-    EXPECTED="\$(./reader.py "${SOURCE_FILE}" -c8 -o16 -x)"
-    ACTUAL="\$(./reader.py "${MOUNT_FILE}" -x)"
+    EXPECTED="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o16 -x)"
+    ACTUAL="\$("$SRCDIR/reader.py" "${MOUNT_FILE}" -x)"
     test "\${EXPECTED}" = "\${ACTUAL}"
 
-    EXPECTED_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
-    EXPECTED_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+    EXPECTED_BEFORE="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o8 -x)"
+    EXPECTED_AFTER="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o24 -x)"
 
     printf "" > "${MOUNT_FILE}"
     validate_size "${MOUNT_FILE}" 0
@@ -153,12 +154,12 @@ assert_ok "Testing a truncate operation" << END
     printf "test" > "${MOUNT_FILE}"
     validate_size "${MOUNT_FILE}" 4
 
-    ACTUAL_BEFORE="\$(./reader.py "${SOURCE_FILE}" -c8 -o8 -x)"
-    ACTUAL_AFTER="\$(./reader.py "${SOURCE_FILE}" -c8 -o24 -x)"
+    ACTUAL_BEFORE="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o8 -x)"
+    ACTUAL_AFTER="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c8 -o24 -x)"
 
     EXPECTED="test"
-    ACTUAL="\$(./reader.py "${SOURCE_FILE}" -c4 -o16)"
-    ACTUAL_MOUNTED="\$(./reader.py "${MOUNT_FILE}" -c4)"
+    ACTUAL="\$("$SRCDIR/reader.py" "${SOURCE_FILE}" -c4 -o16)"
+    ACTUAL_MOUNTED="\$("$SRCDIR/reader.py" "${MOUNT_FILE}" -c4)"
 
     test "\${EXPECTED_BEFORE}" = "\${ACTUAL_BEFORE}"
     test "\${EXPECTED}" = "\${ACTUAL_MOUNTED}"

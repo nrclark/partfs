@@ -1,15 +1,14 @@
-# PartFS Translation Template
-#
-# Copyright (C) 2018 Nicholas Clark
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Nicholas Clark
 # This file is distributed under the same license as the partfs package.
-# Originally written by Nicholas Clark <nicholas.clark@gmail.com>
-
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: partfs 1.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/nrclark/partfs/issues\n"
-"POT-Creation-Date: 2018-10-18 21:46-0600\n"
+"POT-Creation-Date: 2018-11-02 05:11-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
