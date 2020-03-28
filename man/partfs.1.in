@@ -154,7 +154,7 @@ Display the help message and exit. Includes FUSE's help message.
 Display the program version-number and exit.
 
 .SS Mount Options
-Like many other fileysstem-mount programs, mount options can be specified in
+Like many other filesystem-mount programs, mount options can be specified in
 a single argument (-o \fIOPT1,OPT2=val2,OPT3\fR) as a list of multiple
 arguments (-o \fIOPT1\fR -o \fIOPT2=val2\fR -o \fIOPT3\fR), or as a mixture of
 the two styles.
