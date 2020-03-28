@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: partfs 1.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/nrclark/partfs/issues\n"
-"POT-Creation-Date: 2018-11-02 05:11-0600\n"
+"POT-Creation-Date: 2020-03-27 20:18-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: partfs.c:167
+#: partfs.c:190
 #, c-format
 msgid ""
 "Mount part of SOURCE as a different file at MOUNTPOINT.\n"
@@ -34,59 +34,74 @@ msgid ""
 "    -o sizelimit=NBYTES    max length of MOUNT (in bytes)"
 msgstr ""
 
-#: partfs.c:194
+#: partfs.c:217
 #, c-format
 msgid "PartFS version: %s"
 msgstr ""
 
-#: partfs.c:569
+#: partfs.c:598
+#, c-format
+msgid "error: couldn't access mount-point [%s]"
+msgstr ""
+
+#: partfs.c:583
+#, c-format
+msgid "error: couldn't create mount-point [%s]"
+msgstr ""
+
+#: partfs.c:570
+#, c-format
+msgid "error: couldn't open cwd"
+msgstr ""
+
+#: partfs.c:619
 #, c-format
 msgid "error: couldn't open file [%s]"
 msgstr ""
 
-#: partfs.c:548
-#, c-format
-msgid "error: couldn't open mount-point [%s]"
-msgstr ""
-
-#: partfs.c:249
+#: partfs.c:271
 msgid "error: couldn't retrieve FUSE context."
 msgstr ""
 
-#: partfs.c:257
+#: partfs.c:279
 msgid "error: couldn't retrieve PartFS context."
 msgstr ""
 
-#: partfs.c:579
+#: partfs.c:629
 #, c-format
 msgid "error: couldn't stat file [%s]"
 msgstr ""
 
-#: partfs.c:228
+#: partfs.c:252
 msgid "error: invalid additional argument"
 msgstr ""
 
-#: partfs.c:557
+#: partfs.c:607
 msgid "error: mount-point is not an empty file."
 msgstr ""
 
-#: partfs.c:219
+#: partfs.c:242
 msgid "error: mount-point must not be an empty string."
 msgstr ""
 
-#: partfs.c:540
+#: partfs.c:562
 msgid "error: mount-point not specified."
 msgstr ""
 
-#: partfs.c:591
+#: partfs.c:641
 #, c-format
 msgid "error: requested size or offset extends past the end of [%s]"
 msgstr ""
 
-#: partfs.c:207
+#: partfs.c:230
 msgid "error: source must not be an empty string."
 msgstr ""
 
-#: partfs.c:534
+#: partfs.c:556
 msgid "error: source not specified."
+msgstr ""
+
+#: partfs.c:104
+#, c-format
+msgid "warning: couldn't remove tempfile [%s]"
 msgstr ""

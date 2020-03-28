@@ -34,11 +34,16 @@
 #include "config.h"
 #define _(x) gettext(x)
 
+#define DISABLE_WRITES (~0222U)
+#define DEFAULT_PERMS (0644U)
+
 /*----------------------------------------------------------------------------*/
 
 static char progname[NAME_MAX + 1] = {0};
 
 struct partfs_context {
+    const char *created_file;
+    int dir_fd;
     int read_only;
     int source_fd;
     mode_t source_mode;
@@ -80,14 +85,32 @@ static struct fuse_opt partfs_opts[] = {
 
 static void controlled_exit(struct partfs_context *ctx, int exit_code)
 {
-    if (ctx != NULL) {
-        if (ctx->source_fd >= 0) {
-            close(ctx->source_fd);
+    if (ctx == NULL) {
+        exit(exit_code);
+    }
+
+    if (ctx->source_fd >= 0) {
+        close(ctx->source_fd);
+        ctx->source_fd = -1;
+    }
+
+    if (ctx->args != NULL) {
+        fuse_opt_free_args(ctx->args);
+    }
+
+    if (ctx->dir_fd >= 0) {
+        if (ctx->created_file) {
+            if (unlinkat(ctx->dir_fd, ctx->created_file, 0)) {
+                fprintf(stderr, _("warning: couldn't remove tempfile [%s]"),
+                        ctx->created_file);
+                fprintf(stderr, " (%s)\n", strerror(errno));
+            }
+
+            ctx->created_file = NULL;
         }
 
-        if (ctx->args != NULL) {
-            fuse_opt_free_args(ctx->args);
-        }
+        close(ctx->dir_fd);
+        ctx->dir_fd = -1;
     }
 
     exit(exit_code);
@@ -225,9 +248,8 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
                 return 1;
             }
 
-            fprintf(stderr, "%s: %s [%s]\n", progname, _("error: invalid "
-                                                         "additional argument"),
-                    arg);
+            fprintf(stderr, "%s: %s [%s]\n", progname,
+                    _("error: invalid additional argument"), arg);
 
             fuse_opt_free_args(outargs);
             exit(1);
@@ -291,7 +313,7 @@ static int partfs_getattr(const char *path, struct stat *stbuf)
     stbuf->st_mode = S_IFREG | ctx->source_mode;
 
     if (ctx->read_only) {
-        stbuf->st_mode &= ~0222U;
+        stbuf->st_mode &= DISABLE_WRITES;
     }
 
     stbuf->st_nlink = 1;
@@ -541,11 +563,39 @@ int main(int argc, char *argv[])
         controlled_exit(&context, 1);
     }
 
-    result = lstat(config.mountpoint, &stat_buffer);
+    context.dir_fd = openat(AT_FDCWD, ".", O_RDONLY | O_DIRECTORY);
+
+    if (context.dir_fd < 0) {
+        fprintf(stderr, "%s: ", progname);
+        fprintf(stderr, _("error: couldn't open cwd"));
+        fprintf(stderr, " (%s)\n", strerror(errno));
+        controlled_exit(&context, 1);
+    }
+
+    result = faccessat(context.dir_fd, config.mountpoint, F_OK, AT_EACCESS);
 
     if (result != 0) {
+        result = openat(context.dir_fd, config.mountpoint,
+                        O_CREAT | O_WRONLY | O_TRUNC, DEFAULT_PERMS);
+
+        if (result < 0) {
+            fprintf(stderr, "%s: ", progname);
+            fprintf(stderr, _("error: couldn't create mount-point [%s]"),
+                    config.mountpoint);
+            fprintf(stderr, " (%s)\n", strerror(errno));
+            controlled_exit(&context, 1);
+        }
+
+        close(result);
+        context.created_file = config.mountpoint;
+    }
+
+    result = fstatat(context.dir_fd, config.mountpoint, &stat_buffer,
+                     AT_SYMLINK_NOFOLLOW);
+
+    if (result < 0) {
         fprintf(stderr, "%s: ", progname);
-        fprintf(stderr, _("error: couldn't open mount-point [%s]"),
+        fprintf(stderr, _("error: couldn't access mount-point [%s]"),
                 config.mountpoint);
         fprintf(stderr, " (%s)\n", strerror(errno));
         controlled_exit(&context, 1);
@@ -559,9 +609,9 @@ int main(int argc, char *argv[])
     }
 
     if (config.read_only) {
-        context.source_fd = open(config.source, O_RDONLY);
+        context.source_fd = openat(context.dir_fd, config.source, O_RDONLY);
     } else {
-        context.source_fd = open(config.source, O_RDWR);
+        context.source_fd = openat(context.dir_fd, config.source, O_RDWR);
     }
 
     if (context.source_fd < 0) {
@@ -572,7 +622,7 @@ int main(int argc, char *argv[])
         controlled_exit(&context, 1);
     }
 
-    result = stat(config.source, &stat_buffer);
+    result = fstat(context.source_fd, &stat_buffer);
 
     if (result != 0) {
         fprintf(stderr, "%s: ", progname);
