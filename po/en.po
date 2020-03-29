@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: partfs 1.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/nrclark/partfs/issues\n"
-"POT-Creation-Date: 2020-03-27 20:18-0600\n"
+"POT-Creation-Date: 2020-03-29 17:05-0600\n"
 "PO-Revision-Date: 2020-03-27 20:00-0600\n"
 "Last-Translator: Nicholas Clark <nicholas.clark@gmail.com>\n"
 "Language-Team: none\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: partfs.c:190
+#: partfs.c:257
 #, c-format
 msgid ""
 "Mount part of SOURCE as a different file at MOUNTPOINT.\n"
@@ -46,74 +46,82 @@ msgstr ""
 "    -o offset=NBYTES       offset into SOURCE (in bytes)\n"
 "    -o sizelimit=NBYTES    max length of MOUNT (in bytes)"
 
-#: partfs.c:217
+#: partfs.c:284
 #, c-format
 msgid "PartFS version: %s"
 msgstr "PartFS version: %s"
 
-#: partfs.c:598
+#: partfs.c:682
 #, c-format
 msgid "error: couldn't access mount-point [%s]"
 msgstr "error: couldn't access mount-point [%s]"
 
-#: partfs.c:583
+#: partfs.c:667
 #, c-format
 msgid "error: couldn't create mount-point [%s]"
 msgstr "error: couldn't create mount-point [%s]"
 
-#: partfs.c:570
+#: partfs.c:654
 #, c-format
 msgid "error: couldn't open cwd"
 msgstr "error: couldn't open cwd"
 
-#: partfs.c:619
+#: partfs.c:703
 #, c-format
 msgid "error: couldn't open file [%s]"
 msgstr "error: couldn't open file [%s]"
 
-#: partfs.c:271
+#: partfs.c:338
 msgid "error: couldn't retrieve FUSE context."
 msgstr "error: couldn't retrieve FUSE context."
 
-#: partfs.c:279
+#: partfs.c:346
 msgid "error: couldn't retrieve PartFS context."
 msgstr "error: couldn't retrieve PartFS context."
 
-#: partfs.c:629
+#: partfs.c:713
 #, c-format
 msgid "error: couldn't stat file [%s]"
 msgstr "error: couldn't stat file [%s]"
 
-#: partfs.c:252
+#: partfs.c:319
 msgid "error: invalid additional argument"
 msgstr "error: invalid additional argument"
 
-#: partfs.c:607
+#: partfs.c:633
+msgid "error: invalid offset"
+msgstr "error: invalid offset"
+
+#: partfs.c:625
+msgid "error: invalid sizelimit"
+msgstr "error: invalid sizelimit"
+
+#: partfs.c:691
 msgid "error: mount-point is not an empty file."
 msgstr "error: mount-point is not an empty file."
 
-#: partfs.c:242
+#: partfs.c:309
 msgid "error: mount-point must not be an empty string."
 msgstr "error: mount-point must not be an empty string."
 
-#: partfs.c:562
+#: partfs.c:646
 msgid "error: mount-point not specified."
 msgstr "error: mount-point not specified."
 
-#: partfs.c:641
+#: partfs.c:725
 #, c-format
 msgid "error: requested size or offset extends past the end of [%s]"
 msgstr "error: requested size or offset extends past the end of [%s]"
 
-#: partfs.c:230
+#: partfs.c:297
 msgid "error: source must not be an empty string."
 msgstr "error: source must not be an empty string."
 
-#: partfs.c:556
+#: partfs.c:640
 msgid "error: source not specified."
 msgstr "error: source not specified."
 
-#: partfs.c:104
+#: partfs.c:171
 #, c-format
 msgid "warning: couldn't remove tempfile [%s]"
 msgstr "error: couldn't remove file [%s]"

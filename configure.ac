@@ -4,7 +4,7 @@
 m4_include([m4/semantic_version.m4])
 SEMANTIC_VERSION_SET_FILE([VERSION])
 AC_INIT([partfs], SEMANTIC_VERSION, [nicholas.clark@gmail.com])
-AC_SUBST(MANPAGE_DATE, "October 2018")
+AC_SUBST(MANPAGE_DATE, "March 2020")
 
 #------------------------ Configure Source Locations  -------------------------#
 

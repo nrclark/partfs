@@ -2,7 +2,7 @@
 
 .\"-----------------------------------------------------------------------------
 
-.SH NAME 
+.SH NAME
 .B partfs
 \(en Mount a region of \fISOURCE\fR as a different file at \fIMOUNTPOINT\fR.
 
@@ -83,7 +83,7 @@ See \fBpartfs --help\fR for a full list of mouting options.
 
 .\"-----------------------------------------------------------------------------
 
-.SH DESCRIPTION 
+.SH DESCRIPTION
 
 PartFS is a FUSE-based tool for accessing a chunk of a SOURCE file as if it
 were a separate file at MOUNTPOINT. It's intended for use in creating/modifying
@@ -167,7 +167,9 @@ PartFS-specific options:
 The number of bytes to skip in \fISOURCE\fR (default: 0). Byte 1 of
 \fIMOUNTPOINT\fR will map to byte [\fBoffset\fR + 1] of \fISOURCE\fR, as
 described in the \fBsizelimit\fR option below. \fISOURCE\fR's contents below
-the offset are never modified.
+the offset are never modified. Can be specified with one of the following
+power-of-two suffixes: \fBk\fR (2**10), \fBM\fR (2**20), \fBG\fR (2**30), or
+\fBT\fR (2**40).
 
 .TP
 .B -o sizelimit=NBYTES
@@ -175,14 +177,16 @@ Starting length (and maxiumum length) of \fIMOUNTPOINT\fR in bytes. The
 mapped region of \fISOURCE\fR will go from byte [\fBoffset\fR] to byte
 [\fBsizelimit\fR-1], including both edges. So a mount with a 1500-byte sizelimit
 will and no offset will include bytes 0-1499 (for a total length of 1500).
-\fISOURCE\fR's contents above [offset + sizelimit] are never modified.
+\fISOURCE\fR's contents above [offset + sizelimit] are never modified. Can be
+specified with one of the following power-of-two suffixes: \fBk\fR (2**10),
+\fBM\fR (2**20), \fBG\fR (2**30), or \fBT\fR (2**40).
 
 .RS -2n
 General FUSE options:
 .RE
 .LP
 There are a lot of FUSE options available, all of which are provided by FUSE
-instead of directly from PartFS. A complete list can be found by running 
+instead of directly from PartFS. A complete list can be found by running
 \fBpartfs --help\fR. Some of the more interesting options are documented here:
 
 .TP

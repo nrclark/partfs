@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: partfs 1.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/nrclark/partfs/issues\n"
-"POT-Creation-Date: 2020-03-27 20:18-0600\n"
+"POT-Creation-Date: 2020-03-29 17:05-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: partfs.c:190
+#: partfs.c:257
 #, c-format
 msgid ""
 "Mount part of SOURCE as a different file at MOUNTPOINT.\n"
@@ -34,74 +34,82 @@ msgid ""
 "    -o sizelimit=NBYTES    max length of MOUNT (in bytes)"
 msgstr ""
 
-#: partfs.c:217
+#: partfs.c:284
 #, c-format
 msgid "PartFS version: %s"
 msgstr ""
 
-#: partfs.c:598
+#: partfs.c:682
 #, c-format
 msgid "error: couldn't access mount-point [%s]"
 msgstr ""
 
-#: partfs.c:583
+#: partfs.c:667
 #, c-format
 msgid "error: couldn't create mount-point [%s]"
 msgstr ""
 
-#: partfs.c:570
+#: partfs.c:654
 #, c-format
 msgid "error: couldn't open cwd"
 msgstr ""
 
-#: partfs.c:619
+#: partfs.c:703
 #, c-format
 msgid "error: couldn't open file [%s]"
 msgstr ""
 
-#: partfs.c:271
+#: partfs.c:338
 msgid "error: couldn't retrieve FUSE context."
 msgstr ""
 
-#: partfs.c:279
+#: partfs.c:346
 msgid "error: couldn't retrieve PartFS context."
 msgstr ""
 
-#: partfs.c:629
+#: partfs.c:713
 #, c-format
 msgid "error: couldn't stat file [%s]"
 msgstr ""
 
-#: partfs.c:252
+#: partfs.c:319
 msgid "error: invalid additional argument"
 msgstr ""
 
-#: partfs.c:607
+#: partfs.c:633
+msgid "error: invalid offset"
+msgstr ""
+
+#: partfs.c:625
+msgid "error: invalid sizelimit"
+msgstr ""
+
+#: partfs.c:691
 msgid "error: mount-point is not an empty file."
 msgstr ""
 
-#: partfs.c:242
+#: partfs.c:309
 msgid "error: mount-point must not be an empty string."
 msgstr ""
 
-#: partfs.c:562
+#: partfs.c:646
 msgid "error: mount-point not specified."
 msgstr ""
 
-#: partfs.c:641
+#: partfs.c:725
 #, c-format
 msgid "error: requested size or offset extends past the end of [%s]"
 msgstr ""
 
-#: partfs.c:230
+#: partfs.c:297
 msgid "error: source must not be an empty string."
 msgstr ""
 
-#: partfs.c:556
+#: partfs.c:640
 msgid "error: source not specified."
 msgstr ""
 
-#: partfs.c:104
+#: partfs.c:171
 #, c-format
 msgid "warning: couldn't remove tempfile [%s]"
 msgstr ""

@@ -21,6 +21,7 @@
 
 #include <errno.h>
 #include <fuse.h>
+#include <inttypes.h>
 #include <libgen.h>
 #include <libintl.h>
 #include <limits.h>
@@ -36,6 +37,11 @@
 
 #define DISABLE_WRITES (~0222U)
 #define DEFAULT_PERMS (0644U)
+
+#define KILO (0x1ULL << 10U)
+#define MEGA (0x1ULL << 20U)
+#define GIGA (0x1ULL << 30U)
+#define TERA (0x1ULL << 40U)
 
 /*----------------------------------------------------------------------------*/
 
@@ -58,6 +64,8 @@ struct partfs_config {
     size_t size;
     int read_only;
     int nonempty;
+    char *offset_string;
+    char *size_string;
     char source[PATH_MAX + 1];
     char mountpoint[PATH_MAX + 1];
 };
@@ -69,8 +77,8 @@ enum {
 };
 
 static struct fuse_opt partfs_opts[] = {
-    PARTFS_OPT("offset=%zu", offset, 0),
-    PARTFS_OPT("sizelimit=%zu", size, 0),
+    PARTFS_OPT("offset=%s", offset_string, 0),
+    PARTFS_OPT("sizelimit=%s", size_string, 0),
     PARTFS_OPT("ro", read_only, 1),
     PARTFS_OPT("nonempty", nonempty, 1),
 
@@ -82,6 +90,65 @@ static struct fuse_opt partfs_opts[] = {
 };
 
 /*----------------------------------------------------------------------------*/
+
+static int parse_number(const char *input, size_t *output)
+{
+    char *endptr;
+    uintmax_t value_umax = 0;
+    size_t value;
+    char mult = 0;
+
+    if (input == NULL) {
+        return -1;
+    }
+
+    errno = 0;
+    value_umax = strtoumax(input, &endptr, 0);
+
+    if ((errno != 0) || (endptr == input)) {
+        return -1;
+    }
+
+    value = value_umax;
+
+    if (endptr != NULL) {
+        mult = endptr[0];
+
+        if (mult >= 'a') {
+            mult -= ('a' - 'A');
+        }
+    }
+
+    switch (mult) {
+        case 0:
+            break;
+
+        case 'K':
+            value *= KILO;
+            break;
+
+        case 'M':
+            value *= MEGA;
+            break;
+
+        case 'G':
+            value *= GIGA;
+            break;
+
+        case 'T':
+            value *= TERA;
+            break;
+
+        case 'B':
+            break;
+
+        default:
+            return -1;
+    }
+
+    *output = value;
+    return 0;
+}
 
 static void controlled_exit(struct partfs_context *ctx, int exit_code)
 {
@@ -550,6 +617,22 @@ int main(int argc, char *argv[])
     }
 
     fuse_opt_parse(&args, &config, partfs_opts, partfs_opt_proc);
+
+    if (config.size_string != NULL) {
+        if (parse_number(config.size_string, &config.size)) {
+            fprintf(stderr, "%s: %s [%s]\n", progname,
+                    _("error: invalid sizelimit"), config.size_string);
+            controlled_exit(&context, 1);
+        }
+    }
+
+    if (config.offset_string != NULL) {
+        if (parse_number(config.offset_string, &config.offset)) {
+            fprintf(stderr, "%s: %s [%s]\n", progname,
+                    _("error: invalid offset"), config.offset_string);
+            controlled_exit(&context, 1);
+        }
+    }
 
     if (config.source[0] == '\x00') {
         fprintf(stderr, "%s: %s\n", progname,
