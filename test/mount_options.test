@@ -24,6 +24,7 @@ make_files () {
 
     touch "${MOUNT_FILE}"
     touch "${SOURCE_FILE}"
+    chmod 0644 "${SOURCE_FILE}"
 
     if [ "${size}" != 0 ]; then
         dd if=/dev/urandom of="${SOURCE_FILE}" bs=${size} count=1 status=none
@@ -130,7 +131,7 @@ assert_ok "Testing read-only mounts" << END
 
     make_files 256
     partfs "${SOURCE_FILE}" "${MOUNT_FILE}"
-    test "\$(stat -c "%a" "${MOUNT_FILE}")" = "664"
+    test "\$(stat -c "%a" "${MOUNT_FILE}")" = "644"
 
     cat "${MOUNT_FILE}" 1>/dev/null
     echo "test string" | (tee "${MOUNT_FILE}" 1>/dev/null)
@@ -144,5 +145,78 @@ assert_ok "Testing read-only mounts" << END
     cat "${MOUNT_FILE}" 1>/dev/null
     echo "test string" | (! tee "${MOUNT_FILE}" 1>/dev/null 2>&1)
     ${UNMOUNT} "${MOUNT_FILE}"
+    cleanup
+END
+
+assert_ok "Testing autocreate" << END
+    set -euo pipefail
+
+    make_files 16
+    rm -f "${MOUNT_FILE}"
+
+    test ! -e "${MOUNT_FILE}"
+    partfs -o ro,use_ino "${SOURCE_FILE}" "${MOUNT_FILE}"
+
+    test -e "${MOUNT_FILE}"
+
+    SRC_INODE="\$(ls -i "${SOURCE_FILE}" | sed 's/ .*//g')"
+    MOUNT_INODE="\$(ls -i "${MOUNT_FILE}" | sed 's/ .*//g')"
+
+    test "\$SRC_INODE" = "\$MOUNT_INODE"
+    test "\$SRC_INODE" != "\$"
+
+    ${UNMOUNT} "${MOUNT_FILE}"
+    test ! -e "${MOUNT_FILE}"
+
+    cleanup
+END
+
+assert_ok "Testing offset size-suffix" << END
+    set -euo pipefail
+
+    make_files $((1024*1024*8))
+    partfs -o offset=1M "${SOURCE_FILE}" "${MOUNT_FILE}"
+
+    dd if="${SOURCE_FILE}" of="${WORK_FILE}" bs=1M skip=1 status=none
+    validate_size "${MOUNT_FILE}" $((1024*1024*7))
+    diff "${WORK_FILE}" "${MOUNT_FILE}"
+
+    ${UNMOUNT} "${MOUNT_FILE}"
+    rm -f "${WORK_FILE}"
+
+    partfs -o offset=1k "${SOURCE_FILE}" "${MOUNT_FILE}"
+
+    dd if="${SOURCE_FILE}" of="${WORK_FILE}" bs=1k skip=1 status=none
+    validate_size "${MOUNT_FILE}" $((1024*1024*8 - 1024))
+    diff "${WORK_FILE}" "${MOUNT_FILE}"
+
+    cleanup
+
+END
+
+assert_ok "Testing sizelimit size-suffix" << END
+    set -euo pipefail
+
+    make_files $((1024*1024*8))
+    partfs -o sizelimit=1M "${SOURCE_FILE}" "${MOUNT_FILE}"
+
+    dd if="${SOURCE_FILE}" of="${WORK_FILE}" bs=1M count=1 status=none
+    validate_size "${MOUNT_FILE}" $((1024*1024))
+    diff "${WORK_FILE}" "${MOUNT_FILE}"
+
+    ${UNMOUNT} "${MOUNT_FILE}"
+    rm -f "${WORK_FILE}"
+
+    partfs -o offset=1M,sizelimit=1k "${SOURCE_FILE}" "${MOUNT_FILE}"
+
+    dd if="${SOURCE_FILE}" of="${WORK_FILE}" bs=1k skip=1024 count=1 status=none
+    validate_size "${MOUNT_FILE}" 1024
+    diff "${WORK_FILE}" "${MOUNT_FILE}"
+
+    ${UNMOUNT} "${MOUNT_FILE}"
+    partfs -o offset=1Mb,sizelimit=1kB "${SOURCE_FILE}" "${MOUNT_FILE}"
+    validate_size "${MOUNT_FILE}" 1024
+    diff "${WORK_FILE}" "${MOUNT_FILE}"
+
     cleanup
 END
