@@ -392,6 +392,7 @@ static int partfs_getattr(const char *path, struct stat *stbuf)
         return -errno;
     }
 
+    stbuf->st_ino = source_stat.st_ino;
     memcpy(&(stbuf->st_atim), &(source_stat.st_atim), sizeof(stbuf->st_atim));
     memcpy(&(stbuf->st_mtim), &(source_stat.st_mtim), sizeof(stbuf->st_mtim));
     memcpy(&(stbuf->st_ctim), &(source_stat.st_ctim), sizeof(stbuf->st_ctim));
