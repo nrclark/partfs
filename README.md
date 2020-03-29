@@ -32,8 +32,8 @@ or unprivileged filesystem access.
 
 ## Current Status ##
 
-At the time of this writing, PartFS is released as version 1.0 with a functional
-test suite. There are no currently-known bugs. Use with pride.
+At the time of this writing, PartFS is released as version 1.2.0 with a
+functional test suite. There are no currently-known bugs. Use with pride.
 
 ## License ##
 
