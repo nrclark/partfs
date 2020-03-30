@@ -21,6 +21,13 @@ assert_skip() {
 assert_fail() {
     local label="$1"
     __assert "$label" "TODO [Expected failure]"
+    test $? != 0
+}
+
+abort_tests() {
+    local message="$1"
+    echo "Bail out! $message"
+    exit 255
 }
 
 #------------------------------------------------------------------------------#
