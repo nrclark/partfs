@@ -32,7 +32,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "fdisk_access.h"
 #include "config.h"
+
 #define _(x) gettext(x)
 
 #define DISABLE_WRITES (~0222U)
@@ -66,6 +68,7 @@ struct partfs_config {
     int nonempty;
     char *offset_string;
     char *size_string;
+    char *partition_string;
     char source[PATH_MAX + 1];
     char mountpoint[PATH_MAX + 1];
 };
@@ -79,6 +82,7 @@ enum {
 static struct fuse_opt partfs_opts[] = {
     PARTFS_OPT("offset=%s", offset_string, 0),
     PARTFS_OPT("sizelimit=%s", size_string, 0),
+    PARTFS_OPT("partition=%s", partition_string, 0),
     PARTFS_OPT("ro", read_only, 1),
     PARTFS_OPT("nonempty", nonempty, 1),
 
@@ -97,6 +101,7 @@ static int parse_number(const char *input, size_t *output)
     uintmax_t value_umax = 0;
     size_t value = 0;
     char mult = 0;
+    int prev_errno = errno;
 
     if (input == NULL) {
         return -1;
@@ -106,6 +111,7 @@ static int parse_number(const char *input, size_t *output)
     value_umax = strtoumax(input, &endptr, 0);
 
     if ((errno != 0) || (endptr == input)) {
+        errno = prev_errno;
         return -1;
     }
 
@@ -143,10 +149,12 @@ static int parse_number(const char *input, size_t *output)
             break;
 
         default:
+            errno = prev_errno;
             return -1;
     }
 
     *output = value;
+    errno = prev_errno;
     return 0;
 }
 
@@ -596,6 +604,7 @@ int main(int argc, char *argv[])
     unsigned int arg_maxlen = (unsigned int) sizeof(arg_buffer) - arg_offset;
 
     struct stat stat_buffer = {0};
+    size_t partition = (size_t) -1;
     int result = 0;
 
     setlocale(LC_ALL, "");
@@ -618,6 +627,27 @@ int main(int argc, char *argv[])
     }
 
     fuse_opt_parse(&args, &config, partfs_opts, partfs_opt_proc);
+
+    if (config.partition_string != NULL) {
+        if (config.size_string || config.offset_string) {
+            fprintf(stderr, "%s: %s\n", progname,
+                    _("error: 'partition' can't be specified along with"
+                    "'offset or 'sizelimit'"));
+            controlled_exit(&context, 1);
+        }
+
+        if (parse_number(config.partition_string, &partition)) {
+            fprintf(stderr, "%s: %s [%s]\n", progname,
+                    _("error: invalid partition"), config.size_string);
+            controlled_exit(&context, 1);
+        }
+
+        if (partition == 0) {
+            fprintf(stderr, "%s: %s [%s]\n", progname,
+                    _("error: partition numbers start at 1"));
+            controlled_exit(&context, 1);
+        }
+    }
 
     if (config.size_string != NULL) {
         if (parse_number(config.size_string, &config.size)) {
@@ -714,6 +744,37 @@ int main(int argc, char *argv[])
                 config.source);
         fprintf(stderr, " (%s)", strerror(errno));
         controlled_exit(&context, 1);
+    }
+
+    if (partition != (size_t) -1) {
+        int result = partition_count(config.source);
+        struct part_info *info = NULL;
+
+        if (result < 0) {
+            fprintf(stderr, "%s: ", progname);
+            fprintf(stderr, _("error: couldn't find partition table in [%s]\n"),
+                    config.source);
+            controlled_exit(&context, 1);
+        }
+
+        if (result < partition) {
+            fprintf(stderr, "%s: ", progname);
+            fprintf(stderr, _("error: partition %d not found in [%s]\n"),
+                    (int)(partition), config.source);
+            controlled_exit(&context, 1);
+        }
+
+        if (partition_get_info(config.source, partition - 1, &info) != 0) {
+            fprintf(stderr, "%s: ", progname);
+            fprintf(stderr, _("error: couldn't detect position of partition %d"
+                    "in [%s]\n"), (int) partition, config.source);
+            partition_dealloc_info(info);
+            controlled_exit(&context, 1);
+        }
+
+        config.offset = info->start;
+        config.size = info->length;
+        partition_dealloc_info(info);
     }
 
     if (config.size == (size_t) -1) {

@@ -6,7 +6,7 @@ EXTRA_DIST += po/Makevars.in
 DISTCLEANFILES = po/Makevars
 
 bin_PROGRAMS = partfs
-partfs_SOURCES = partfs.c
+partfs_SOURCES = partfs.c fdisk_access.c
 dist_man_MANS = man/partfs.1
 
 TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/build-aux/tap-driver.sh
