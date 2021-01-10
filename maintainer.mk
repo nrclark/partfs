@@ -67,6 +67,7 @@ format-%: % $(MAKE_DIR)/uncrustify.cfg
 	@sed -i 's/^    "/"/g' $*.temp.c
 	@if ! diff -q $*.temp.c $* 1>/dev/null; then cp $*.temp.c $*; fi
 	@rm $*.temp.c
+	@rm $*.temp.c.uncrustify
 
 $(foreach x,$(wildcard *.c),$(eval format-$x:))
 $(foreach x,$(wildcard *.h),$(eval format-$x:))
@@ -81,6 +82,7 @@ SPACE := $(EMPTY) $(EMPTY)
 CLANG_TIDY_BLACKLIST := $(strip \
     -llvm-header-guard -android-cloexec-open \
     -android-cloexec-accept -hicpp-signed-bitwise -hicpp-no-assembler \
+    -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling \
 )
 
 TIDY_CFLAGS := $(FORCED_CFLAGS)
@@ -134,12 +136,14 @@ SAN_CFLAGS := \
 
 #------------------------------------------------------------------------------#
 
+GCC_DIR := /usr/lib/gcc/x86_64-linux-gnu/9
+
 cppcheck-%:
 	@echo -n "(cppcheck) "
 	@(cppcheck $* --std=c99 --force \
 	--enable=warning,style,performance,portability \
 	-I `pwd` -I /usr/include -I /usr/include/linux \
-	-I /usr/lib/gcc/x86_64-redhat-linux/7/include \
+	-I $(GCC_DIR)/include \
 	--std=c99) 2>&1 | (grep -vP "^[(]information" 1>&2 || true)
 
 $(foreach x,$(wildcard *.c),$(eval cppcheck-$x:))
@@ -149,14 +153,14 @@ cppcheck: $(foreach x,$(wildcard *.h),cppcheck-$x)
 
 include-%:
 	@(include-what-you-use \
-	    -I/usr/lib/gcc/x86_64-redhat-linux/7/include $* || true) 2>&1 | \
+	    -I$(GCC_DIR)/include $* || true) 2>&1 | \
 	    grep -P "(should remove these lines|has correct [#]includes)" || true
 	@(include-what-you-use \
-	    -I/usr/lib/gcc/x86_64-redhat-linux/7/include $* || true) 2>&1 | \
+	    -I$(GCC_DIR)/include $* || true) 2>&1 | \
 	    grep -P "^[-] " || true
 
 fullinclude-%:
-	-include-what-you-use -I/usr/lib/gcc/x86_64-redhat-linux/7/include $*
+	-include-what-you-use -I$(GCC_DIR)/include $*
 
 include: $(foreach x,$(wildcard *.c),include-$x)
 include: $(foreach x,$(wildcard *.h),include-$x)
