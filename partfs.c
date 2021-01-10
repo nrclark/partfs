@@ -93,9 +93,9 @@ static struct fuse_opt partfs_opts[] = {
 
 static int parse_number(const char *input, size_t *output)
 {
-    char *endptr;
+    char *endptr = NULL;
     uintmax_t value_umax = 0;
-    size_t value;
+    size_t value = 0;
     char mult = 0;
 
     if (input == NULL) {
@@ -185,7 +185,7 @@ static void controlled_exit(struct partfs_context *ctx, int exit_code)
 
 static ssize_t read_noeintr(int fildes, void *buf, size_t nbyte)
 {
-    ssize_t result;
+    ssize_t result = 0;
 
     do {
         result = read(fildes, buf, nbyte);
@@ -196,7 +196,7 @@ static ssize_t read_noeintr(int fildes, void *buf, size_t nbyte)
 
 static ssize_t write_noeintr(int fildes, const void *buf, size_t nbyte)
 {
-    ssize_t result;
+    ssize_t result = 0;
 
     do {
         result = write(fildes, buf, nbyte);
@@ -331,7 +331,7 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
 static struct partfs_context * partfs_get_context(void)
 {
     struct fuse_context *fuse_context = fuse_get_context();
-    struct partfs_context *result;
+    struct partfs_context *result = NULL;
 
     if (fuse_context == NULL) {
         fprintf(stderr, "%s: ", progname);
@@ -368,8 +368,8 @@ static int partfs_open(const char *path, struct fuse_file_info *info)
 static int partfs_getattr(const char *path, struct stat *stbuf)
 {
     (void) path;
-    struct stat source_stat;
-    int result;
+    struct stat source_stat = {0};
+    int result = 0;
     struct partfs_context *ctx = partfs_get_context();
 
     memset(stbuf, 0, sizeof(struct stat));
@@ -404,8 +404,8 @@ static int partfs_read(const char *path, char *buf, size_t size,
                        off_t offset, struct fuse_file_info *info)
 {
     (void) path;
-    off_t lseek_result;
-    ssize_t read_result;
+    off_t lseek_result = 0;
+    ssize_t read_result = 0;
     struct partfs_context *ctx = partfs_get_context();
 
     if (((size_t)offset + size) < (size_t)offset) {
@@ -448,9 +448,9 @@ static int partfs_write(const char *path, const char *buf, size_t size,
                         off_t offset, struct fuse_file_info *info)
 {
     (void) path;
-    off_t lseek_result;
-    ssize_t write_result;
-    size_t stop_byte;
+    off_t lseek_result = 0;
+    ssize_t write_result = 0;
+    size_t stop_byte = 0;
 
     struct partfs_context *ctx = partfs_get_context();
 
@@ -595,8 +595,8 @@ int main(int argc, char *argv[])
     unsigned int arg_offset = sizeof("-ofsname=") - 1;
     unsigned int arg_maxlen = (unsigned int) sizeof(arg_buffer) - arg_offset;
 
-    struct stat stat_buffer;
-    int result;
+    struct stat stat_buffer = {0};
+    int result = 0;
 
     setlocale(LC_ALL, "");
 #ifdef ENABLE_NLS
