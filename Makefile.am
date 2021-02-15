@@ -1,10 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4 --install
 EXTRA_DIST = VERSION README.md autogen.sh guess_flags.sh
 
-SUBDIRS = po
-EXTRA_DIST += po/Makevars.in
-DISTCLEANFILES = po/Makevars
-
 bin_PROGRAMS = partfs
 partfs_SOURCES = partfs.c fdisk_access.c
 dist_man_MANS = man/partfs.1

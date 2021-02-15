@@ -4,7 +4,7 @@
 m4_include([m4/semantic_version.m4])
 SEMANTIC_VERSION_SET_FILE([VERSION])
 AC_INIT([partfs], SEMANTIC_VERSION, [nicholas.clark@gmail.com])
-AC_SUBST(MANPAGE_DATE, "March 2020")
+AC_SUBST(MANPAGE_DATE, "February 2021")
 
 #------------------------ Configure Source Locations  -------------------------#
 
@@ -20,14 +20,6 @@ AC_PREREQ([2.69])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_USE_SYSTEM_EXTENSIONS
 
-AM_GNU_GETTEXT_VERSION([0.18])
-AM_GNU_GETTEXT([external])
-
-AS_IF([test "x$USE_NLS" = xyes], [
-    AX_DEFINE_DIR([LOCALEDIR], [localedir],
-                  [Define to your gettext locales directory])
-])
-
 #------------------------ Confirm Rand() Requirements  ------------------------#
 
 # Checks for programs.
@@ -40,8 +32,8 @@ LT_INIT
 
 #------------------------------------------------------------------------------#
 
-AX_REQUIRE_HEADERS([errno.h stdio.h limits.h stddef.h stdlib.h string.h \
-                    unistd.h libgen.h], partfs)
+AX_REQUIRE_HEADERS([errno.h inttypes.h stdio.h limits.h stddef.h stdlib.h \
+                    string.h unistd.h libgen.h], partfs)
 
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_STRNLEN
@@ -65,7 +57,8 @@ AS_IF([test "x$ac_cv_sizeof_off_t" = x8],
   AS_VAR_APPEND([CPPFLAGS],[" -D_FILE_OFFSET_BITS=64"])
 ])
 
-AX_REQUIRE_HEADERS([fuse.h])
+AC_CHECK_HEADER([fuse.h], [], [AC_CHECK_HEADER([fuse/fuse.h],[],
+  [AC_MSG_ERROR([Missing header fuse.h required for partfs.])])])
 
 AC_CHECK_LIB(fuse, fuse_main,,
     [AC_CHECK_LIB(osxfuse, fuse_main,,
@@ -82,6 +75,21 @@ AX_MAKE_ENABLE_OPT([sanitizers], [no], [Build with GCC sanitizers enabled])
 AX_MAKE_ENABLE_OPT([lint], [no], [Build with every warning GCC can emit])
 AX_MAKE_ENABLE_OPT([warnings], [no], [Build with -Wall -Wextra -pedantic])
 AX_MAKE_ENABLE_OPT([werror], [no], [Build with -Werror])
+AX_MAKE_ENABLE_OPT([partitions], [yes],
+                   [Enable partition-select. Requires libfdisk.])
+
+#------------------- Enable partition-selection with libfdisk -----------------#
+
+AS_IF([test "x$enable_partitions" = xyes],
+  [
+    AC_CHECK_HEADER([libfdisk.h], [], [AC_CHECK_HEADER([libfdisk/libfdisk.h],[],
+      [AC_MSG_ERROR([Missing header libfdisk.h required for partfs.])])])
+
+    AC_CHECK_LIB(fdisk, fdisk_get_partitions, [],
+      [AC_MSG_ERROR([Libfdisk is required unless partition-select support is disabled.])])
+  ],
+  []
+)
 
 #---------------------- Configure For Optional Sanitizers  --------------------#
 
@@ -131,6 +139,5 @@ AS_IF([test "x$enable_werror" = xno], [], [
 
 #------------------------------ Generate Outputs ------------------------------#
 
-AC_CONFIG_FILES([Makefile po/Makevars po/Makefile.in man/partfs.1], [],
-                [MANPAGE_DATE="$MANPAGE_DATE"])
+AC_CONFIG_FILES([Makefile man/partfs.1], [], [MANPAGE_DATE="$MANPAGE_DATE"])
 AC_OUTPUT

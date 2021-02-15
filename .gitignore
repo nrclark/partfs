@@ -8,6 +8,7 @@
 *.o
 *.trs
 partfs
+man/partfs.1
 a.out
 Makefile
 Makefile.in

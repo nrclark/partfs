@@ -23,9 +23,7 @@
 #include <fuse.h>
 #include <inttypes.h>
 #include <libgen.h>
-#include <libintl.h>
 #include <limits.h>
-#include <locale.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,8 +32,6 @@
 
 #include "fdisk_access.h"
 #include "config.h"
-
-#define _(x) gettext(x)
 
 #define DISABLE_WRITES (~0222U)
 #define DEFAULT_PERMS (0644U)
@@ -176,7 +172,7 @@ static void controlled_exit(struct partfs_context *ctx, int exit_code)
     if (ctx->dir_fd >= 0) {
         if (ctx->created_file) {
             if (unlinkat(ctx->dir_fd, ctx->created_file, 0)) {
-                fprintf(stderr, _("warning: couldn't remove tempfile [%s]"),
+                fprintf(stderr, "warning: couldn't remove tempfile [%s]",
                         ctx->created_file);
                 fprintf(stderr, " (%s)\n", strerror(errno));
             }
@@ -262,18 +258,18 @@ static void exit_help(void)
     char *argv[2] = {progname, help_opt};
 
     const char *partfs_help =
-        _("Mount part of SOURCE as a different file at MOUNTPOINT.\n"
-          "\n"
-          "Usage: %s SOURCE MOUNTPOINT [options]\n"
-          "\n"
-          "General options:\n"
-          "    -o opt,[opt...]        mount options\n"
-          "    -h   --help            print help\n"
-          "    -V   --version         print version\n"
-          "\n"
-          "PartFS options:\n"
-          "    -o offset=NBYTES       offset into SOURCE (in bytes)\n"
-          "    -o sizelimit=NBYTES    max length of MOUNT (in bytes)");
+        "Mount part of SOURCE as a different file at MOUNTPOINT.\n"
+        "\n"
+        "Usage: %s SOURCE MOUNTPOINT [options]\n"
+        "\n"
+        "General options:\n"
+        "    -o opt,[opt...]        mount options\n"
+        "    -h   --help            print help\n"
+        "    -V   --version         print version\n"
+        "\n"
+        "PartFS options:\n"
+        "    -o offset=NBYTES       offset into SOURCE (in bytes)\n"
+        "    -o sizelimit=NBYTES    max length of MOUNT (in bytes)";
 
     fprintf(stderr, partfs_help, progname);
     fprintf(stderr, "\n\n");
@@ -289,7 +285,7 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
 
     switch (key) {
         case KEY_VERSION:
-            fprintf(stderr, _("PartFS version: %s"), PACKAGE_VERSION);
+            fprintf(stderr, "PartFS version: %s", PACKAGE_VERSION);
             fprintf(stderr, "\n");
             fuse_opt_add_arg(outargs, "--version");
             fuse_main(outargs->argc, outargs->argv, &dummy_ops, NULL);
@@ -302,7 +298,7 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
                 if (arg[0] == '\x00') {
                     fprintf(stderr, "%s: ", progname);
                     fprintf(stderr, "%s\n",
-                            _("error: source must not be an empty string."));
+                            "error: source must not be an empty string.");
                     fuse_opt_free_args(outargs);
                     exit(1);
                 }
@@ -314,7 +310,7 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
                 if (arg[0] == '\x00') {
                     fprintf(stderr, "%s: ", progname);
                     fprintf(stderr, "%s\n",
-                            _("error: mount-point must not be an empty string.")
+                            "error: mount-point must not be an empty string."
                             );
                     fuse_opt_free_args(outargs);
                     exit(1);
@@ -324,7 +320,7 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
             }
 
             fprintf(stderr, "%s: %s [%s]\n", progname,
-                    _("error: invalid additional argument"), arg);
+                    "error: invalid additional argument", arg);
 
             fuse_opt_free_args(outargs);
             exit(1);
@@ -343,7 +339,7 @@ static struct partfs_context * partfs_get_context(void)
 
     if (fuse_context == NULL) {
         fprintf(stderr, "%s: ", progname);
-        fprintf(stderr, "%s\n", _("error: couldn't retrieve FUSE context."));
+        fprintf(stderr, "%s\n", "error: couldn't retrieve FUSE context.");
         exit(0);
     }
 
@@ -351,7 +347,7 @@ static struct partfs_context * partfs_get_context(void)
 
     if (result == NULL) {
         fprintf(stderr, "%s: ", progname);
-        fprintf(stderr, "%s\n", _("error: couldn't retrieve PartFS context."));
+        fprintf(stderr, "%s\n", "error: couldn't retrieve PartFS context.");
         exit(0);
     }
 
@@ -607,16 +603,6 @@ int main(int argc, char *argv[])
     size_t partition = (size_t) -1;
     int result = 0;
 
-    setlocale(LC_ALL, "");
-#ifdef ENABLE_NLS
-    if (getenv("LOCALEDIR")) {
-        bindtextdomain(PACKAGE, getenv("LOCALEDIR"));
-    } else {
-        bindtextdomain(PACKAGE, LOCALEDIR);
-    }
-    textdomain(PACKAGE);
-#endif
-
     safecopy(progname, basename(argv[0]), sizeof(progname));
 
     for (int x = 1; x < argc; x++) {
@@ -631,20 +617,20 @@ int main(int argc, char *argv[])
     if (config.partition_string != NULL) {
         if (config.size_string || config.offset_string) {
             fprintf(stderr, "%s: %s\n", progname,
-                    _("error: 'partition' can't be specified along with"
-                    "'offset or 'sizelimit'"));
+                    "error: 'partition' can't be specified along with"
+                    "'offset or 'sizelimit'");
             controlled_exit(&context, 1);
         }
 
         if (parse_number(config.partition_string, &partition)) {
             fprintf(stderr, "%s: %s [%s]\n", progname,
-                    _("error: invalid partition"), config.size_string);
+                    "error: invalid partition", config.size_string);
             controlled_exit(&context, 1);
         }
 
         if (partition == 0) {
-            fprintf(stderr, "%s: %s [%s]\n", progname,
-                    _("error: partition numbers start at 1"));
+            fprintf(stderr, "%s: %s.\n", progname,
+                    "error: partition numbers start at 1");
             controlled_exit(&context, 1);
         }
     }
@@ -652,7 +638,7 @@ int main(int argc, char *argv[])
     if (config.size_string != NULL) {
         if (parse_number(config.size_string, &config.size)) {
             fprintf(stderr, "%s: %s [%s]\n", progname,
-                    _("error: invalid sizelimit"), config.size_string);
+                    "error: invalid sizelimit", config.size_string);
             controlled_exit(&context, 1);
         }
     }
@@ -660,20 +646,20 @@ int main(int argc, char *argv[])
     if (config.offset_string != NULL) {
         if (parse_number(config.offset_string, &config.offset)) {
             fprintf(stderr, "%s: %s [%s]\n", progname,
-                    _("error: invalid offset"), config.offset_string);
+                    "error: invalid offset", config.offset_string);
             controlled_exit(&context, 1);
         }
     }
 
     if (config.source[0] == '\x00') {
         fprintf(stderr, "%s: %s\n", progname,
-                _("error: source not specified."));
+                "error: source not specified.");
         controlled_exit(&context, 1);
     }
 
     if (config.mountpoint[0] == '\x00') {
         fprintf(stderr, "%s: %s\n", progname,
-                _("error: mount-point not specified."));
+                "error: mount-point not specified.");
         controlled_exit(&context, 1);
     }
 
@@ -681,7 +667,7 @@ int main(int argc, char *argv[])
 
     if (context.dir_fd < 0) {
         fprintf(stderr, "%s: ", progname);
-        fprintf(stderr, _("error: couldn't open cwd"));
+        fprintf(stderr, "error: couldn't open cwd");
         fprintf(stderr, " (%s)\n", strerror(errno));
         controlled_exit(&context, 1);
     }
@@ -694,7 +680,7 @@ int main(int argc, char *argv[])
 
         if (result < 0) {
             fprintf(stderr, "%s: ", progname);
-            fprintf(stderr, _("error: couldn't create mount-point [%s]"),
+            fprintf(stderr, "error: couldn't create mount-point [%s]",
                     config.mountpoint);
             fprintf(stderr, " (%s)\n", strerror(errno));
             controlled_exit(&context, 1);
@@ -709,7 +695,7 @@ int main(int argc, char *argv[])
 
     if (result < 0) {
         fprintf(stderr, "%s: ", progname);
-        fprintf(stderr, _("error: couldn't access mount-point [%s]"),
+        fprintf(stderr, "error: couldn't access mount-point [%s]",
                 config.mountpoint);
         fprintf(stderr, " (%s)\n", strerror(errno));
         controlled_exit(&context, 1);
@@ -718,7 +704,7 @@ int main(int argc, char *argv[])
     if (((stat_buffer.st_size != 0) && (config.nonempty == 0)) ||
         (S_ISREG(stat_buffer.st_mode) == 0)) {
         fprintf(stderr, "%s: %s\n", progname,
-                _("error: mount-point is not an empty file."));
+                "error: mount-point is not an empty file.");
         controlled_exit(&context, 1);
     }
 
@@ -730,7 +716,7 @@ int main(int argc, char *argv[])
 
     if (context.source_fd < 0) {
         fprintf(stderr, "%s: ", progname);
-        fprintf(stderr, _("error: couldn't open file [%s]"),
+        fprintf(stderr, "error: couldn't open file [%s]",
                 config.source);
         fprintf(stderr, " (%s)\n", strerror(errno));
         controlled_exit(&context, 1);
@@ -740,7 +726,7 @@ int main(int argc, char *argv[])
 
     if (result != 0) {
         fprintf(stderr, "%s: ", progname);
-        fprintf(stderr, _("error: couldn't stat file [%s]"),
+        fprintf(stderr, "error: couldn't stat file [%s]",
                 config.source);
         fprintf(stderr, " (%s)", strerror(errno));
         controlled_exit(&context, 1);
@@ -752,22 +738,22 @@ int main(int argc, char *argv[])
 
         if (result < 0) {
             fprintf(stderr, "%s: ", progname);
-            fprintf(stderr, _("error: couldn't find partition table in [%s]\n"),
+            fprintf(stderr, "error: couldn't find partition table in [%s]\n",
                     config.source);
             controlled_exit(&context, 1);
         }
 
         if (result < partition) {
             fprintf(stderr, "%s: ", progname);
-            fprintf(stderr, _("error: partition %d not found in [%s]\n"),
+            fprintf(stderr, "error: partition %d not found in [%s]\n",
                     (int)(partition), config.source);
             controlled_exit(&context, 1);
         }
 
         if (partition_get_info(config.source, partition - 1, &info) != 0) {
             fprintf(stderr, "%s: ", progname);
-            fprintf(stderr, _("error: couldn't detect position of partition %d"
-                    "in [%s]\n"), (int) partition, config.source);
+            fprintf(stderr, "error: couldn't detect position of partition %d"
+                    "in [%s]\n", (int) partition, config.source);
             partition_dealloc_info(info);
             controlled_exit(&context, 1);
         }
@@ -783,8 +769,8 @@ int main(int argc, char *argv[])
 
     if ((config.offset + config.size) > (size_t) stat_buffer.st_size) {
         fprintf(stderr, "%s: ", progname);
-        fprintf(stderr, _("error: requested size or offset extends past the"
-                          " end of [%s]"), basename(config.source));
+        fprintf(stderr, "error: requested size or offset extends past the"
+                          " end of [%s]", basename(config.source));
         fprintf(stderr, "\n");
         controlled_exit(&context, 1);
     }
