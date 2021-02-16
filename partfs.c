@@ -30,8 +30,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "fdisk_access.h"
 #include "config.h"
+#include "fdisk_access.h"
 
 #define DISABLE_WRITES (~0222U)
 #define DEFAULT_PERMS (0644U)
@@ -62,6 +62,7 @@ struct partfs_config {
     size_t size;
     int read_only;
     int nonempty;
+    int print_table;
     char *offset_string;
     char *size_string;
     char *partition_string;
@@ -73,6 +74,8 @@ struct partfs_config {
 
 enum {
     KEY_VERSION,
+    KEY_HELP,
+    KEY_PRINT_PARTITION
 };
 
 static struct fuse_opt partfs_opts[] = {
@@ -81,11 +84,12 @@ static struct fuse_opt partfs_opts[] = {
     PARTFS_OPT("partition=%s", partition_string, 0),
     PARTFS_OPT("ro", read_only, 1),
     PARTFS_OPT("nonempty", nonempty, 1),
-
+    FUSE_OPT_KEY("-p", KEY_PRINT_PARTITION),
+    FUSE_OPT_KEY("--print-partitions", KEY_PRINT_PARTITION),
     FUSE_OPT_KEY("-V", KEY_VERSION),
     FUSE_OPT_KEY("--version", KEY_VERSION),
-    FUSE_OPT_KEY("-h", 0),
-    FUSE_OPT_KEY("--help", 0),
+    FUSE_OPT_KEY("-h", KEY_HELP),
+    FUSE_OPT_KEY("--help", KEY_HELP),
     FUSE_OPT_END
 };
 
@@ -269,7 +273,13 @@ static void exit_help(void)
         "\n"
         "PartFS options:\n"
         "    -o offset=NBYTES       offset into SOURCE (in bytes)\n"
-        "    -o sizelimit=NBYTES    max length of MOUNT (in bytes)";
+        "    -o sizelimit=NBYTES    max length of MOUNT (in bytes)"
+#ifdef ENABLE_PARTITIONS
+        "\n\n"
+        "    -o partition=PARTNUM   partition to mount from SOURCE\n"
+        "    -p/--print-partitions  print partition table and exit"
+#endif
+        ;
 
     fprintf(stderr, partfs_help, progname);
     fprintf(stderr, "\n\n");
@@ -284,6 +294,11 @@ static int partfs_opt_proc(void *data, const char *arg, int key,
     const struct fuse_operations dummy_ops = {0};
 
     switch (key) {
+        case KEY_PRINT_PARTITION:
+            config->print_table = 1;
+            strcpy(config->mountpoint, "/dev/null");
+            break;
+
         case KEY_VERSION:
             fprintf(stderr, "PartFS version: %s", PACKAGE_VERSION);
             fprintf(stderr, "\n");
@@ -614,6 +629,14 @@ int main(int argc, char *argv[])
 
     fuse_opt_parse(&args, &config, partfs_opts, partfs_opt_proc);
 
+    if ((config.partition_string != NULL) || (config.print_table != 0)) {
+#ifndef ENABLE_PARTITIONS
+        fprintf(stderr, "%s: %s\n", progname,
+                "error: not compiled with partition-table support.");
+        controlled_exit(&context, 1);
+#endif
+    }
+
     if (config.partition_string != NULL) {
         if (config.size_string || config.offset_string) {
             fprintf(stderr, "%s: %s\n", progname,
@@ -701,11 +724,13 @@ int main(int argc, char *argv[])
         controlled_exit(&context, 1);
     }
 
-    if (((stat_buffer.st_size != 0) && (config.nonempty == 0)) ||
-        (S_ISREG(stat_buffer.st_mode) == 0)) {
-        fprintf(stderr, "%s: %s\n", progname,
-                "error: mount-point is not an empty file.");
-        controlled_exit(&context, 1);
+    if (strcmp(config.mountpoint, "/dev/null") != 0) {
+        if (((stat_buffer.st_size != 0) && (config.nonempty == 0)) ||
+            (S_ISREG(stat_buffer.st_mode) == 0)) {
+            fprintf(stderr, "%s: %s\n", progname,
+                    "error: mount-point is not an empty file.");
+            controlled_exit(&context, 1);
+        }
     }
 
     if (config.read_only) {
@@ -732,8 +757,9 @@ int main(int argc, char *argv[])
         controlled_exit(&context, 1);
     }
 
-    if (partition != (size_t) -1) {
-        int result = partition_count(config.source);
+#ifdef ENABLE_PARTITIONS
+    if (config.print_table) {
+        result = partition_count(config.source);
         struct part_info *info = NULL;
 
         if (result < 0) {
@@ -743,7 +769,43 @@ int main(int argc, char *argv[])
             controlled_exit(&context, 1);
         }
 
-        if (result < partition) {
+        printf("Number:Name:UUID:Type:Offset:Size\n");
+
+        for (unsigned int x = 0; x < (unsigned int) result; x++) {
+            int prev_errno = errno;
+            errno = 0;
+            if (partition_get_info(config.source, x, &info) != 0) {
+                fprintf(stderr, "%s: ", progname);
+                fprintf(stderr, "error: couldn't read partition %u in [%s]\n",
+                        x, config.source);
+                if (errno) {
+                    fprintf(stderr, "%s\n", strerror(errno));
+                }
+                errno = prev_errno;
+                partition_dealloc_info(info);
+                controlled_exit(&context, 1);
+            }
+            printf("%u:%s:%s:%s:%zd:%zd\n", x+1, info->name,
+                   info->uuid, info->type, info->start, info->length);
+
+            partition_dealloc_info(info);
+        }
+
+        controlled_exit(&context, 0);
+    }
+
+    if (partition != (size_t) -1) {
+        result = partition_count(config.source);
+        struct part_info *info = NULL;
+
+        if (result < 0) {
+            fprintf(stderr, "%s: ", progname);
+            fprintf(stderr, "error: couldn't find partition table in [%s]\n",
+                    config.source);
+            controlled_exit(&context, 1);
+        }
+
+        if (result < (int) partition) {
             fprintf(stderr, "%s: ", progname);
             fprintf(stderr, "error: partition %d not found in [%s]\n",
                     (int)(partition), config.source);
@@ -758,10 +820,11 @@ int main(int argc, char *argv[])
             controlled_exit(&context, 1);
         }
 
-        config.offset = info->start;
-        config.size = info->length;
+        config.offset = (size_t) info->start;
+        config.size = (size_t) info->length;
         partition_dealloc_info(info);
     }
+#endif
 
     if (config.size == (size_t) -1) {
         config.size = (size_t) stat_buffer.st_size - config.offset;

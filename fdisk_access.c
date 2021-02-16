@@ -1,13 +1,15 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include <errno.h>
-#include <libfdisk/libfdisk.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include <libfdisk/libfdisk.h>
+
 #include "fdisk_access.h"
 
 enum {

@@ -80,8 +80,13 @@ AX_MAKE_ENABLE_OPT([partitions], [yes],
 
 #------------------- Enable partition-selection with libfdisk -----------------#
 
+AM_CONDITIONAL([ENABLE_PARTITIONS],[test x$enable_partitions = xyes])
+AC_SUBST([ENABLE_PARTITIONS], $enable_partitions)
+
 AS_IF([test "x$enable_partitions" = xyes],
   [
+    AC_DEFINE([ENABLE_PARTITIONS], [1], [Enable support for mount-by-partition])
+
     AC_CHECK_HEADER([libfdisk.h], [], [AC_CHECK_HEADER([libfdisk/libfdisk.h],[],
       [AC_MSG_ERROR([Missing header libfdisk.h required for partfs.])])])
 

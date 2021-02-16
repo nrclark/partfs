@@ -2,8 +2,12 @@ ACLOCAL_AMFLAGS = -I m4 --install
 EXTRA_DIST = VERSION README.md autogen.sh guess_flags.sh
 
 bin_PROGRAMS = partfs
-partfs_SOURCES = partfs.c fdisk_access.c
+partfs_SOURCES = partfs.c
 dist_man_MANS = man/partfs.1
+
+if ENABLE_PARTITIONS
+    partfs_SOURCES += fdisk_access.c
+endif
 
 TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/build-aux/tap-driver.sh
 TEST_LOG_DRIVER_FLAGS = --comments

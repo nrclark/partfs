@@ -29,7 +29,13 @@
 .I SOURCE
 [-o \fBoptions\fR]
 .I MOUNTPOINT
+
+.LP
+.B partfs
+.RB [ \-p/--print-partitions ]
+.I SOURCE
 .PD
+.LP
 
 .SS Size/Offset Examples:
 .PD 0
@@ -51,6 +57,21 @@
 -o offset=\fINBYTES\fR,sizelimit=\fINBYTES\fR[,\fBoptions\fR]
 .PD
 .LP
+
+.SS Partition Examples:
+.PD 0
+.B partfs
+.I SOURCE
+.I MOUNTPOINT
+-o partition=\fIPARTNUM\fR[,\fBoptions\fR]
+.LP
+
+.B partfs
+.I SOURCE
+--print-partitions
+.PD
+.LP
+
 
 .SS Common FUSE Options:
 .PD 0
@@ -125,14 +146,26 @@ byte 0. Similarly, Region 4 could be mounted with no size-limit because it goes
 to the end of the file.
 .LP
 
+If \fISOURCE\fR has a supported partition-table inside of it, PartFS can use
+libfdisk to display the table's contents or to mount a specific partition
+specified by number. To mount partition 2 of \fISOURCE\fR, the right option
+would be:
+.LP
+.PD 0
+.RS 4n
+partfs \fISOURCE\fR \fIMOUNTPOINT\fR -o partition=2
+.RE
+.PD
+.LP
 PartFS is logically similar to a loopback-mounted image under Linux. It has two
 key differences though. First, it can be done as an unprivileged user. And
 second, it doesn't offer direct access to any filesystems stored within the
 mounted image. Consider using with fuse2fs or a similar tool for unprivileged
 filesystem access.
 
-\fIMOUNTPOINT\fR must be an empty file unless the \fBnonempty\fR option is
-supplied, as described under 'General FUSE options' below.
+If \fIMOUNTPOINT\fR exists, it must be an empty file unless the \fBnonempty\fR
+option is supplied, as described under 'General FUSE options' below. If it
+doesn't exist, it will be created automatically and deleted on unmount.
 
 PartFS exposes the full set of FUSE mounting options. These include \fIro\fR for
 read-only mounts, \fIallow_other\fR for multi-user mounts, \fInonempty\fR for
@@ -169,7 +202,7 @@ The number of bytes to skip in \fISOURCE\fR (default: 0). Byte 1 of
 described in the \fBsizelimit\fR option below. \fISOURCE\fR's contents below
 the offset are never modified. Can be specified with one of the following
 power-of-two suffixes: \fBk\fR (2**10), \fBM\fR (2**20), \fBG\fR (2**30), or
-\fBT\fR (2**40).
+\fBT\fR (2**40). Can't be used with [-o partition].
 
 .TP
 .B -o sizelimit=NBYTES
@@ -179,7 +212,15 @@ mapped region of \fISOURCE\fR will go from byte [\fBoffset\fR] to byte
 will and no offset will include bytes 0-1499 (for a total length of 1500).
 \fISOURCE\fR's contents above [offset + sizelimit] are never modified. Can be
 specified with one of the following power-of-two suffixes: \fBk\fR (2**10),
-\fBM\fR (2**20), \fBG\fR (2**30), or \fBT\fR (2**40).
+\fBM\fR (2**20), \fBG\fR (2**30), or \fBT\fR (2**40). Can't be used with
+[-o partition].
+
+.TP
+.B -o partition=PARTNUM
+Mount a specific partition from inside of \fISOURCE\fR onto \fIMOUNTPOINT\fR.
+\fISOURCE\fR must have an fdisk-compatible partition table. If you're unsure
+what partition you want to access, try the -p/--print-partitions option. Can't
+be used with [-o offset/sizelimit]. Note that partition indexing starts at 1.
 
 .RS -2n
 General FUSE options:
@@ -239,4 +280,3 @@ access to an image's filesystem. To edit a filesystem, a secondary mount (using
 .PD
 .SS \fRURL:
 .I https://github.com/nrclark/partfs
-
