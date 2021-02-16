@@ -6,6 +6,8 @@ FORCED_CFLAGS := -D_FILE_OFFSET_BITS=64
 default:
 
 MAKE_DIR := $(abspath $(dir $(firstword $(MAKEFILE_LIST))))
+SOURCES := $(wildcard *.c)
+HEADERS := $(filter-out config.h,$(wildcard *.h))
 
 #------------------------------------------------------------------------------#
 
@@ -48,8 +50,7 @@ lint-%.c: %.c
 	@echo Checking $*.c against lots of compiler warnings...
 	@$(CC) -c $(LINT_CFLAGS) $< -o /dev/null
 
-LINT_TARGETS := $(foreach x,$(wildcard *.c),lint-$x)
-LINT_TARGETS += $(foreach x,$(wildcard *.h),lint-$x)
+LINT_TARGETS := $(foreach x,$(SOURCES) $(HEADERS),lint-$x)
 LINT_TARGETS := $(sort $(LINT_TARGETS))
 $(foreach x,$(LINT_TARGETS),$(eval $x:))
 
@@ -69,10 +70,8 @@ format-%: % $(MAKE_DIR)/uncrustify.cfg
 	@rm $*.temp.c
 	@rm $*.temp.c.uncrustify
 
-$(foreach x,$(wildcard *.c),$(eval format-$x:))
-$(foreach x,$(wildcard *.h),$(eval format-$x:))
-format: $(foreach x,$(wildcard *.c),format-$x)
-format: $(foreach x,$(wildcard *.h),format-$x)
+$(foreach x,$(SOURCES) $(HEADERS),$(eval format-$x:))
+format: $(foreach x,$(SOURCES) $(HEADERS),format-$x)
 
 #------------------------------------------------------------------------------#
 
@@ -99,10 +98,8 @@ tidy-%: %
 	@clang-check -analyze $* -extra-arg="$(TIDY_CFLAGS)" --
 	@rm -f $(basename $*).plist
 
-$(foreach x,$(wildcard *.c),$(eval tidy-$x:))
-$(foreach x,$(wildcard *.h),$(eval tidy-$x:))
-tidy: $(foreach x,$(wildcard *.c),tidy-$x)
-tidy: $(foreach x,$(wildcard *.h),tidy-$x)
+$(foreach x,$(SOURCES) $(HEADERS),$(eval tidy-$x:))
+tidy: $(foreach x,$(SOURCES) $(HEADERS),tidy-$x)
 
 #------------------------------------------------------------------------------#
 
@@ -146,10 +143,8 @@ cppcheck-%:
 	-I $(GCC_DIR)/include \
 	--std=c99) 2>&1 | (grep -vP "^[(]information" 1>&2 || true)
 
-$(foreach x,$(wildcard *.c),$(eval cppcheck-$x:))
-$(foreach x,$(wildcard *.h),$(eval cppcheck-$x:))
-cppcheck: $(foreach x,$(wildcard *.c),cppcheck-$x)
-cppcheck: $(foreach x,$(wildcard *.h),cppcheck-$x)
+$(foreach x,$(SOURCES) $(HEADERS),$(eval cppcheck-$x:))
+cppcheck: $(foreach x,$(SOURCES) $(HEADERS),cppcheck-$x)
 
 include-%:
 	@(include-what-you-use \
@@ -162,20 +157,16 @@ include-%:
 fullinclude-%:
 	-include-what-you-use -I$(GCC_DIR)/include $*
 
-include: $(foreach x,$(wildcard *.c),include-$x)
-include: $(foreach x,$(wildcard *.h),include-$x)
-$(foreach x,$(wildcard *.c),$(eval include-$x:))
-$(foreach x,$(wildcard *.h),$(eval include-$x:))
+$(foreach x,$(SOURCES) $(HEADERS),$(eval include-$x:))
+include: $(foreach x,$(SOURCES) $(HEADERS),include-$x)
 
 #------------------------------------------------------------------------------#
 
 combo-%: format-% cppcheck-% lint-% tidy-%
 	@echo 1>/dev/null
 
-combo: $(foreach x,$(wildcard *.c),include-$x)
-combo: $(foreach x,$(wildcard *.h),include-$x)
-$(foreach x,$(wildcard *.c),$(eval combo-$x:))
-$(foreach x,$(wildcard *.h),$(eval combo-$x:))
+$(foreach x,$(SOURCES) $(HEADERS),$(eval combo-$x:))
+combo: $(foreach x,$(SOURCES) $(HEADERS),combo-$x)
 
 #------------------------------------------------------------------------------#
 
