@@ -49,7 +49,7 @@ int partition_count(const char *devname)
         goto cleanup;
     }
 
-    result = fdisk_table_get_nents(table);
+    result = (int) fdisk_table_get_nents(table);
 
 cleanup:
     if (table) {

@@ -121,7 +121,7 @@ static int parse_number(const char *input, size_t *output)
         mult = endptr[0];
 
         if (mult >= 'a') {
-            mult -= ('a' - 'A');
+            mult = (char)(mult - ('a' - 'A'));
         }
     }
 
@@ -812,7 +812,8 @@ int main(int argc, char *argv[])
             controlled_exit(&context, 1);
         }
 
-        if (partition_get_info(config.source, partition - 1, &info) != 0) {
+        if (partition_get_info(config.source, (unsigned int) partition - 1,
+                               &info) != 0) {
             fprintf(stderr, "%s: ", progname);
             fprintf(stderr, "error: couldn't detect position of partition %d"
                     "in [%s]\n", (int) partition, config.source);

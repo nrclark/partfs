@@ -101,7 +101,7 @@ AS_IF([test "x$enable_partitions" = xyes],
 AS_IF([test "x$enable_lint" = xno], [], [
   AX_ENABLE_CFLAGS([-std=c99])
   AX_ENABLE_EVERY_WARNING([-Wtraditional -Wtraditional-conversion \
-                           -Wabi -Wpadded -Wformat-nonliteral])
+                           -Wabi -Wpadded -Wformat-nonliteral -Wc++-compat])
 ])
 
 AS_IF([test "x$enable_warnings" = xno], [], [
