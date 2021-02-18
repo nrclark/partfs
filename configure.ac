@@ -11,7 +11,7 @@ AC_SUBST(MANPAGE_DATE, "February 2021")
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
-AC_CONFIG_SRCDIR([partfs.c])
+AC_CONFIG_SRCDIR([src/partfs.c])
 AC_CONFIG_HEADERS([config.h])
 
 #------------------------- Init Automake / Autoconf  --------------------------#
@@ -144,5 +144,6 @@ AS_IF([test "x$enable_werror" = xno], [], [
 
 #------------------------------ Generate Outputs ------------------------------#
 
-AC_CONFIG_FILES([Makefile man/partfs.1], [], [MANPAGE_DATE="$MANPAGE_DATE"])
+AC_CONFIG_FILES([Makefile src/Makefile man/partfs.1], [],
+                [MANPAGE_DATE="$MANPAGE_DATE"])
 AC_OUTPUT
