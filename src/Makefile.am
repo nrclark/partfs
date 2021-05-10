@@ -19,4 +19,5 @@ TESTS = \
     test/write.test
 
 EXTRA_DIST = test/reader.py test/taplib.sh test/writer.py
+EXTRA_DIST += fdisk_access.c fdisk_access.h
 EXTRA_DIST += $(TESTS)
