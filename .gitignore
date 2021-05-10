@@ -7,6 +7,7 @@
 *.log
 *.o
 *.trs
+*.tar.gz
 partfs
 man/partfs.1
 a.out
